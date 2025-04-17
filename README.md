@@ -44,7 +44,7 @@ For more details about authentication and API usage, see the [Aha! API documenta
 This MCP server requires the following environment variables:
 
 - `AHA_API_TOKEN`: Your Aha! API token
-- `AHA_DOMAIN`: Your Aha! domain (e.g., yourcompany.aha.io)
+- `AHA_DOMAIN`: Your Aha! domain (e.g., yourcompany if you access aha at yourcompany.aha.io)
 
 ## IDE Integration
 
@@ -54,15 +54,19 @@ Below are examples of how to configure various editors to use the aha-mcp server
 
 ### VSCode
 
+The instructions below were copied from the instructions [found here](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server).
+
 Add this to your `.vscode/settings.json`, using your preferred method to securely provide the environment variables:
 
 ```json
 {
-  "mcpServers": {
-    "aha-mcp": {
-      "command": "npx",
-      "args": ["-y", "aha-mcp"]
-      // Environment variables should be provided through your preferred secure method
+  "mcp": {
+    "servers": {
+      "aha-mcp": {
+        "command": "npx",
+        "args": ["-y", "aha-mcp"]
+        // Environment variables should be provided through your preferred secure method
+      }
     }
   }
 }
@@ -105,6 +109,7 @@ Add a configuration to your `cline_mcp_settings.json` via Cline MCP Server setti
 ### RooCode
 
 Open the MCP settings by either:
+
 - Clicking "Edit MCP Settings" in RooCode settings, or
 - Using the "RooCode: Open MCP Config" command in VS Code's command palette
 
@@ -145,9 +150,11 @@ Add a configuration to your `claude_desktop_config.json`:
 Retrieves an Aha! feature or requirement by reference number.
 
 **Parameters:**
+
 - `reference` (required): Reference number of the feature or requirement (e.g., "DEVELOP-123")
 
 **Example:**
+
 ```json
 {
   "reference": "DEVELOP-123"
@@ -155,6 +162,7 @@ Retrieves an Aha! feature or requirement by reference number.
 ```
 
 **Response:**
+
 ```json
 {
   "reference_num": "DEVELOP-123",
@@ -172,10 +180,12 @@ Retrieves an Aha! feature or requirement by reference number.
 Gets an Aha! page by reference number.
 
 **Parameters:**
+
 - `reference` (required): Reference number of the page (e.g., "ABC-N-213")
 - `includeParent` (optional): Include parent page information. Defaults to false.
 
 **Example:**
+
 ```json
 {
   "reference": "ABC-N-213",
@@ -184,6 +194,7 @@ Gets an Aha! page by reference number.
 ```
 
 **Response:**
+
 ```json
 {
   "reference_num": "ABC-N-213",
@@ -201,10 +212,12 @@ Gets an Aha! page by reference number.
 Searches for Aha! documents.
 
 **Parameters:**
+
 - `query` (required): Search query string
 - `searchableType` (optional): Type of document to search for (e.g., "Page"). Defaults to "Page"
 
 **Example:**
+
 ```json
 {
   "query": "product roadmap",
@@ -213,6 +226,7 @@ Searches for Aha! documents.
 ```
 
 **Response:**
+
 ```json
 {
   "results": [
@@ -237,13 +251,13 @@ Searches for Aha! documents.
 
 ## Configuration Options
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AHA_API_TOKEN` | Your Aha! API token | Required |
-| `AHA_DOMAIN` | Your Aha! domain (e.g., yourcompany.aha.io) | Required |
-| `LOG_LEVEL` | Logging level (debug, info, warn, error) | info |
-| `PORT` | Port for SSE transport | 3000 |
-| `TRANSPORT` | Transport type (stdio or sse) | stdio |
+| Variable        | Description                                 | Default  |
+| --------------- | ------------------------------------------- | -------- |
+| `AHA_API_TOKEN` | Your Aha! API token                         | Required |
+| `AHA_DOMAIN`    | Your Aha! domain (e.g., yourcompany.aha.io) | Required |
+| `LOG_LEVEL`     | Logging level (debug, info, warn, error)    | info     |
+| `PORT`          | Port for SSE transport                      | 3000     |
+| `TRANSPORT`     | Transport type (stdio or sse)               | stdio    |
 
 ## Troubleshooting
 
@@ -251,22 +265,26 @@ Searches for Aha! documents.
 <summary>Common Issues</summary>
 
 1. Authentication errors:
+
    - Verify your API token is correct and properly set in your environment
    - Ensure the token has the necessary permissions in Aha!
    - Confirm you're using the correct Aha! domain
 
 2. Server won't start:
+
    - Ensure all dependencies are installed
    - Check the Node.js version is v20 or higher
    - Verify the TypeScript compilation succeeds
    - Confirm environment variables are properly set and accessible
 
 3. Connection issues:
+
    - Check your network connection
    - Verify your Aha! domain is accessible
    - Ensure your API token has not expired
 
 4. API Request failures:
+
    - Check the reference numbers are correct
    - Verify the searchable type is valid
    - Ensure you have permissions to access the requested resources
@@ -275,4 +293,4 @@ Searches for Aha! documents.
    - Make sure environment variables are properly set and accessible to the MCP server
    - Check that your secure storage method is correctly configured
    - Verify that the environment variables are being passed to the MCP server process
-</details>
+   </details>
