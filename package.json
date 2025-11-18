@@ -1,11 +1,11 @@
 {
   "name": "@bayerit/aha-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for accessing Aha! GraphQL API",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "aha-mcp": "./build/index.js"
+    "aha-mcp": "build/index.js"
   },
   "files": [
     "build/**/*"
@@ -25,6 +25,10 @@
   ],
   "author": "Aha! (https://www.aha.io)",
   "license": "ISC",
+  "publishConfig": {
+    "registry": "https://artifactory.bayer.com/artifactory/api/npm/npm-platforms-engineering/",
+    "access": "public"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "graphql": "^16.0.0",
