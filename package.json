@@ -1,5 +1,5 @@
 {
-  "name": "@bayerit/aha-mcp",
+  "name": "@bayerit/bayer-aha-mcp",
   "version": "1.0.1",
   "description": "MCP server for accessing Aha! GraphQL API",
   "type": "module",
