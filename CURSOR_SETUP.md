@@ -31,7 +31,7 @@ This guide will help you install and configure the aha-mcp server in Cursor.
   "mcpServers": {
     "aha-mcp": {
       "command": "npx",
-      "args": ["-y", "@bayerit/aha-mcp@1.0.0"],
+      "args": ["-y", "@bayerit/bayer-aha-mcp@1.0.0"],
       "env": {
         "AHA_API_TOKEN": "your-api-token-here",
         "AHA_DOMAIN": "yourcompany",
@@ -73,7 +73,7 @@ To update to a newer version, simply update the version number in your Cursor co
   "mcpServers": {
     "aha-mcp": {
       "command": "npx",
-      "args": ["-y", "@bayerit/aha-mcp@<new-version>"],
+      "args": ["-y", "@bayerit/bayer-aha-mcp@<new-version>"],
       ...
     }
   }
