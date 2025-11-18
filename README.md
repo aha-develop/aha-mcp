@@ -1,6 +1,6 @@
 # aha-mcp
 
-Model Context Protocol (MCP) server for accessing Aha! records through the MCP. This integration enables seamless interaction with Aha! features, requirements, and pages directly through the Model Context Protocol.
+Model Context Protocol (MCP) server for accessing Aha! records through the MCP. This integration enables seamless interaction with Aha! features, requirements, and pages directly through the Model Context Protocol. You can read, create, and update features, query releases, and add comments to features.
 
 ## Prerequisites
 
@@ -45,6 +45,8 @@ This MCP server requires the following environment variables:
 
 - `AHA_API_TOKEN`: Your Aha! API token
 - `AHA_DOMAIN`: Your Aha! domain (e.g., yourcompany if you access aha at yourcompany.aha.io)
+- `AHA_PRODUCT_ID`: (Optional) Default product ID to use for the `get_releases` tool when no productId parameter is provided
+- `AHA_USER_EMAIL`: (Optional) Default user email address to use when assigning features. If set, you can assign features to yourself without specifying the email each time.
 
 ## IDE Integration
 
@@ -241,23 +243,245 @@ Searches for Aha! documents.
 }
 ```
 
+### 4. get_releases
+
+Query releases for a product. Useful for finding valid release IDs when creating or updating features.
+
+**Parameters:**
+
+- `productId` (optional): Product ID to query releases for. If not provided, will use the value from `AHA_PRODUCT_ID` environment variable if set.
+
+**Example:**
+
+```json
+{
+  "productId": "123456"
+}
+```
+
+**Example without productId (uses AHA_PRODUCT_ID from config):**
+
+```json
+{}
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": "789012",
+    "name": "Q1 2025 Release",
+    "releaseDate": "2025-03-31",
+    "referenceNum": "REL-2025-Q1"
+  },
+  {
+    "id": "789013",
+    "name": "Q2 2025 Release",
+    "releaseDate": "2025-06-30",
+    "referenceNum": "REL-2025-Q2"
+  }
+]
+```
+
+### 5. get_workflow_statuses
+
+Query workflow statuses for a project. Useful for finding valid workflow status IDs when updating features.
+
+**Parameters:**
+
+- `projectId` (required): Project ID to query workflow statuses for
+
+**Example:**
+
+```json
+{
+  "projectId": "123456"
+}
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": "333444",
+    "name": "In Progress"
+  },
+  {
+    "id": "555666",
+    "name": "In Review"
+  },
+  {
+    "id": "777888",
+    "name": "Done"
+  }
+]
+```
+
+### 6. create_feature
+
+Create a new feature in Aha!.
+
+**Parameters:**
+
+- `name` (required): Feature name/title
+- `description` (required): Feature description
+- `releaseId` (required): Release ID where the feature will be created
+
+**Example:**
+
+```json
+{
+  "name": "New Dashboard Feature",
+  "description": "Add a new dashboard view for analytics",
+  "releaseId": "789012"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "345678",
+  "name": "New Dashboard Feature",
+  "referenceNum": "DEVELOP-456",
+  "description": {
+    "markdownBody": "Add a new dashboard view for analytics"
+  }
+}
+```
+
+### 7. update_feature
+
+Update key properties of an existing feature. You can update any combination of release, assignment, and workflow status.
+
+**Parameters:**
+
+- `reference` (required): Feature reference number (e.g., "DEVELOP-123")
+- `release` (optional): Release ID to assign the feature to
+- `assignedToUser` (optional): User ID to assign the feature to
+- `assignedToUserEmail` (optional): Email address of user to assign the feature to (alternative to assignedToUser)
+- `workflowStatus` (optional): Workflow status ID or name to set for the feature. If a name is provided (e.g., "In Review"), it will be automatically looked up and converted to the corresponding ID.
+
+**Example:**
+
+```json
+{
+  "reference": "DEVELOP-123",
+  "release": "789013",
+  "assignedToUser": "111222",
+  "workflowStatus": "333444"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "345678",
+  "name": "Feature name",
+  "referenceNum": "DEVELOP-123",
+  "release": {
+    "id": "789013",
+    "name": "Q2 2025 Release"
+  },
+  "assignedToUser": {
+    "id": "111222",
+    "name": "John Doe"
+  },
+  "workflowStatus": {
+    "id": "333444",
+    "name": "In Progress"
+  }
+}
+```
+
+### 8. add_feature_comment
+
+Add a comment to an existing feature. Comments are additive and separate from the feature description.
+
+**Parameters:**
+
+- `reference` (required): Feature reference number (e.g., "DEVELOP-123")
+- `comment` (required): Comment text to add to the feature
+
+**Example:**
+
+```json
+{
+  "reference": "DEVELOP-123",
+  "comment": "This feature is ready for QA testing."
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "feature": {
+    "id": "345678",
+    "referenceNum": "DEVELOP-123"
+  },
+  "message": "Comment added successfully"
+}
+```
+
+### 9. get_user_by_email
+
+Get a user ID by email address. Useful for finding user IDs when assigning features.
+
+**Parameters:**
+
+- `email` (required): Email address to look up
+
+**Example:**
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "111222",
+  "email": "user@example.com"
+}
+```
+
 ## Example Queries
 
+### Reading Data
 - "Get feature DEVELOP-123"
 - "Fetch the product roadmap page ABC-N-213"
 - "Search for pages about launch planning"
 - "Get requirement ADT-123-1"
 - "Find all pages mentioning Q2 goals"
+- "Get all releases for product 123456"
+- "Get workflow statuses for project 123456"
+
+### Creating and Updating
+- "Create a new feature called 'User Authentication' with description 'Add login functionality' in release 789012"
+- "Update feature DEVELOP-123 to assign it to user 111222"
+- "Change the status of feature DEVELOP-123 to 'In Progress'"
+- "Move feature DEVELOP-123 to release 789013"
+- "Add a comment to feature DEVELOP-123 saying 'Ready for review'"
 
 ## Configuration Options
 
-| Variable        | Description                                 | Default  |
-| --------------- | ------------------------------------------- | -------- |
-| `AHA_API_TOKEN` | Your Aha! API token                         | Required |
-| `AHA_DOMAIN`    | Your Aha! domain (e.g., yourcompany.aha.io) | Required |
-| `LOG_LEVEL`     | Logging level (debug, info, warn, error)    | info     |
-| `PORT`          | Port for SSE transport                      | 3000     |
-| `TRANSPORT`     | Transport type (stdio or sse)               | stdio    |
+| Variable          | Description                                                                    | Default  |
+| ----------------- | ------------------------------------------------------------------------------ | -------- |
+| `AHA_API_TOKEN`   | Your Aha! API token                                                            | Required |
+| `AHA_DOMAIN`      | Your Aha! domain (e.g., yourcompany.aha.io)                                    | Required |
+| `AHA_PRODUCT_ID`  | Default product ID for `get_releases` tool (optional)                          | None     |
+| `AHA_USER_EMAIL`  | Default user email for assigning features (optional)                          | None     |
+| `LOG_LEVEL`       | Logging level (debug, info, warn, error)                                       | info     |
+| `PORT`            | Port for SSE transport                                                         | 3000     |
+| `TRANSPORT`       | Transport type (stdio or sse)                                                   | stdio    |
 
 ## Troubleshooting
 
