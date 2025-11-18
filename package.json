@@ -10,6 +10,10 @@
   "files": [
     "build/**/*"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bayer-int/aha-mcp.git"
+  },
   "scripts": {
     "build": "tsc && chmod +x build/index.js",
     "start": "node build/index.js",
