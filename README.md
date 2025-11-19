@@ -46,7 +46,7 @@ This MCP server requires the following environment variables:
 - `AHA_API_TOKEN`: Your Aha! API token
 - `AHA_DOMAIN`: Your Aha! domain (e.g., yourcompany if you access aha at yourcompany.aha.io)
 - `AHA_PRODUCT_ID`: (Optional) Default product ID to use for the `get_releases` tool when no productId parameter is provided
-- `AHA_USER_EMAIL`: (Optional) Default user email address to use when assigning features. If set, you can assign features to yourself without specifying the email each time.
+- `AHA_USER_EMAIL`: (Optional) Default user email address to use when assigning features. If set, you can assign features to yourself without specifying the email each time. Also used by the `get_configured_user` tool to return the configured user's email and user ID.
 
 ## IDE Integration
 
@@ -453,6 +453,31 @@ Get a user ID by email address. Useful for finding user IDs when assigning featu
 }
 ```
 
+### 10. get_configured_user
+
+Get the configured user email and user ID from the `AHA_USER_EMAIL` environment variable. This tool reads the configured email and resolves the corresponding user ID, returning both in a single call. This is useful for AI assistants that need to determine the current user without reading git config or parsing MCP config files.
+
+**Parameters:**
+
+- None (reads from `AHA_USER_EMAIL` environment variable)
+
+**Example:**
+
+```json
+{}
+```
+
+**Response:**
+
+```json
+{
+  "email": "user@example.com",
+  "userId": "111222"
+}
+```
+
+**Note:** This tool requires `AHA_USER_EMAIL` to be set in the environment. If not configured, it will return an error.
+
 ## Example Queries
 
 ### Reading Data
@@ -463,6 +488,7 @@ Get a user ID by email address. Useful for finding user IDs when assigning featu
 - "Find all pages mentioning Q2 goals"
 - "Get all releases for product 123456"
 - "Get workflow statuses for project 123456"
+- "Get the configured user email and ID"
 
 ### Creating and Updating
 - "Create a new feature called 'User Authentication' with description 'Add login functionality' in release 789012"
@@ -478,7 +504,7 @@ Get a user ID by email address. Useful for finding user IDs when assigning featu
 | `AHA_API_TOKEN`   | Your Aha! API token                                                            | Required |
 | `AHA_DOMAIN`      | Your Aha! domain (e.g., yourcompany.aha.io)                                    | Required |
 | `AHA_PRODUCT_ID`  | Default product ID for `get_releases` tool (optional)                          | None     |
-| `AHA_USER_EMAIL`  | Default user email for assigning features (optional)                          | None     |
+| `AHA_USER_EMAIL`  | Default user email for assigning features and `get_configured_user` tool (optional) | None     |
 | `LOG_LEVEL`       | Logging level (debug, info, warn, error)                                       | info     |
 | `PORT`            | Port for SSE transport                                                         | 3000     |
 | `TRANSPORT`       | Transport type (stdio or sse)                                                   | stdio    |

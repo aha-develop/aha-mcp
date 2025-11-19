@@ -788,6 +788,47 @@ export class Handlers {
     }
   }
 
+  async handleGetConfiguredUser(request: any) {
+    if (!this.defaultUserEmail) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "AHA_USER_EMAIL environment variable is not configured"
+      );
+    }
+
+    try {
+      const userId = await this.getUserByEmail(this.defaultUserEmail);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                email: this.defaultUserEmail,
+                userId: userId,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("API Error:", errorMessage);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to get configured user: ${errorMessage}`
+      );
+    }
+  }
+
   async handleAddFeatureComment(request: any) {
     const { reference, comment } = request.params.arguments as {
       reference: string;

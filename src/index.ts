@@ -237,6 +237,16 @@ class AhaMcp {
             required: ["email"],
           },
         },
+        {
+          name: "get_configured_user",
+          description:
+            "Get the configured user email and user ID from AHA_USER_EMAIL environment variable. Returns both email and userId in a single call.",
+          inputSchema: {
+            type: "object",
+            properties: {},
+            required: [],
+          },
+        },
       ],
     }));
 
@@ -259,6 +269,8 @@ class AhaMcp {
         return this.handlers.handleAddFeatureComment(request);
       } else if (request.params.name === "get_user_by_email") {
         return this.handlers.handleGetUserByEmail(request);
+      } else if (request.params.name === "get_configured_user") {
+        return this.handlers.handleGetConfiguredUser(request);
       }
 
       throw new McpError(
