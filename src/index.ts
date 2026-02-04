@@ -47,7 +47,7 @@ class AhaMcp {
       }
     );
 
-    this.handlers = new Handlers(client);
+    this.handlers = new Handlers(client, AHA_DOMAIN!, AHA_API_TOKEN!);
     this.setupToolHandlers();
 
     this.server.onerror = (error) => console.error("[MCP Error]", error);
@@ -96,6 +96,20 @@ class AhaMcp {
           },
         },
         {
+          name: "get_idea",
+          description: "Get an Aha! idea by reference number",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description: "Reference number (e.g., ABC-I-213)",
+              },
+            },
+            required: ["reference"],
+          },
+        },
+        {
           name: "search_documents",
           description: "Search for Aha! documents",
           inputSchema: {
@@ -110,6 +124,11 @@ class AhaMcp {
                 description: "Type of document to search for (e.g., Page)",
                 default: "Page",
               },
+              page: {
+                type: "integer",
+                description: "Page number for pagination",
+                default: 1,
+              },
             },
             required: ["query"],
           },
@@ -122,6 +141,8 @@ class AhaMcp {
         return this.handlers.handleGetRecord(request);
       } else if (request.params.name === "get_page") {
         return this.handlers.handleGetPage(request);
+      } else if (request.params.name === "get_idea") {
+        return this.handlers.handleGetIdea(request);
       } else if (request.params.name === "search_documents") {
         return this.handlers.handleSearchDocuments(request);
       }

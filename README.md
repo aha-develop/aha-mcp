@@ -1,6 +1,6 @@
 # aha-mcp
 
-Model Context Protocol (MCP) server for accessing Aha! records through the MCP. This integration enables seamless interaction with Aha! features, requirements, and pages directly through the Model Context Protocol.
+Model Context Protocol (MCP) server for accessing Aha! records through the MCP. This integration enables seamless interaction with Aha! features, requirements, ideas, and pages directly through the Model Context Protocol.
 
 ## Prerequisites
 
@@ -215,13 +215,15 @@ Searches for Aha! documents.
 
 - `query` (required): Search query string
 - `searchableType` (optional): Type of document to search for (e.g., "Page"). Defaults to "Page"
+- `page` (optional): Page number for pagination. Defaults to `1`
 
 **Example:**
 
 ```json
 {
   "query": "product roadmap",
-  "searchableType": "Page"
+  "searchableType": "Page",
+  "page": 2
 }
 ```
 
@@ -229,17 +231,43 @@ Searches for Aha! documents.
 
 ```json
 {
-  "results": [
+  "nodes": [
     {
       "reference_num": "ABC-N-123",
       "name": "Product Roadmap 2025",
-      "type": "Page",
+      "searchableType": "Page",
       "url": "https://company.aha.io/pages/ABC-N-123"
     }
   ],
-  "total_results": 1
+  "currentPage": 2,
+  "totalCount": 50,
+  "totalPages": 5,
+  "isLastPage": false
 }
 ```
+### 4. get_idea
+
+Retrieves an Aha! idea by reference number.
+
+**Parameters:**
+
+- `reference` (required): Reference number of the idea (e.g., "RAS-I-50")
+
+**Example:**
+```json
+{
+  "reference": "RAS-I-50"
+}
+```
+
+**Response:**
+```json
+{
+  "reference_num": "RAS-I-50",
+  "name": "Idea title"
+}
+```
+
 
 ## Example Queries
 
@@ -247,6 +275,7 @@ Searches for Aha! documents.
 - "Fetch the product roadmap page ABC-N-213"
 - "Search for pages about launch planning"
 - "Get requirement ADT-123-1"
+- "Get idea RAS-I-50"
 - "Find all pages mentioning Q2 goals"
 
 ## Configuration Options

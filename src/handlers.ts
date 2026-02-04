@@ -4,10 +4,12 @@ import {
   FEATURE_REF_REGEX,
   REQUIREMENT_REF_REGEX,
   NOTE_REF_REGEX,
+  IDEA_REF_REGEX,
   Record,
   FeatureResponse,
   RequirementResponse,
   PageResponse,
+  IdeaResponse,
   SearchResponse,
 } from "./types.js";
 import {
@@ -18,7 +20,11 @@ import {
 } from "./queries.js";
 
 export class Handlers {
-  constructor(private client: GraphQLClient) {}
+  constructor(
+    private client: GraphQLClient,
+    private domain: string,
+    private token: string,
+  ) {}
 
   async handleGetRecord(request: any) {
     const { reference } = request.params.arguments as { reference: string };
@@ -88,6 +94,75 @@ export class Handlers {
     }
   }
 
+  async handleGetIdea(request: any) {
+    const { reference } = request.params.arguments as { reference: string };
+
+    if (!reference) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Reference number is required",
+      );
+    }
+
+    if (!IDEA_REF_REGEX.test(reference)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Invalid reference number format. Expected ABC-I-213",
+      );
+    }
+
+    try {
+      const response = await fetch(
+        `https://${this.domain}.aha.io/api/v1/ideas/${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as IdeaResponse;
+
+      if (!data.idea) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No idea found for reference ${reference}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data.idea, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("API Error:", errorMessage);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to fetch idea: ${errorMessage}`,
+      );
+    }
+  }
+
   async handleGetPage(request: any) {
     const { reference, includeParent = false } = request.params.arguments as {
       reference: string;
@@ -149,9 +224,14 @@ export class Handlers {
   }
 
   async handleSearchDocuments(request: any) {
-    const { query, searchableType = "Page" } = request.params.arguments as {
+    const {
+      query,
+      searchableType = "Page",
+      page,
+    } = request.params.arguments as {
       query: string;
       searchableType?: string;
+      page?: number;
     };
 
     if (!query) {
@@ -164,6 +244,7 @@ export class Handlers {
         {
           query,
           searchableType: [searchableType],
+          page,
         }
       );
 
