@@ -13,6 +13,16 @@ export const getPageQuery = `
         name
         referenceNum
       }
+      commentsCount
+      comments {
+        id
+        body
+        createdAt
+        user {
+          name
+          email
+        }
+      }
     }
   }
 `;
@@ -24,6 +34,16 @@ export const getFeatureQuery = `
       description {
         markdownBody
       }
+      commentsCount
+      comments {
+        id
+        body
+        createdAt
+        user {
+          name
+          email
+        }
+      }
     }
   }
 `;
@@ -34,6 +54,16 @@ export const getRequirementQuery = `
       name
       description {
         markdownBody
+      }
+      commentsCount
+      comments {
+        id
+        body
+        createdAt
+        user {
+          name
+          email
+        }
       }
     }
   }
