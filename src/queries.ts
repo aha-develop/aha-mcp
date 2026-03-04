@@ -21,6 +21,16 @@ export const getFeatureQuery = `
   query GetFeature($id: ID!) {
     feature(id: $id) {
       name
+      referenceNum
+      workflowStatus {
+        name
+      }
+      startDate
+      dueDate
+      release {
+        name
+        referenceNum
+      }
       description {
         markdownBody
       }
@@ -32,9 +42,77 @@ export const getRequirementQuery = `
   query GetRequirement($id: ID!) {
     requirement(id: $id) {
       name
+      referenceNum
+      workflowStatus {
+        name
+      }
+      release {
+        name
+        referenceNum
+      }
       description {
         markdownBody
       }
+    }
+  }
+`;
+
+export const getReleaseQuery = `
+  query GetRelease($id: ID!) {
+    release(id: $id) {
+      name
+      referenceNum
+      releaseDate
+      startOn
+      endOn
+      developmentStartedOn
+      releasedOn
+      progress
+      parkingLot
+      daysToRelease
+      workflowStatus {
+        name
+      }
+      owner {
+        name
+      }
+      project {
+        name
+      }
+      featuresCount
+      features {
+        name
+        referenceNum
+        workflowStatus {
+          name
+        }
+      }
+    }
+  }
+`;
+
+export const listReleasesQuery = `
+  query ListReleases($filters: ReleaseFilters) {
+    releases(filters: $filters, per: 50) {
+      nodes {
+        name
+        referenceNum
+        releaseDate
+        startOn
+        endOn
+        progress
+        parkingLot
+        daysToRelease
+        workflowStatus {
+          name
+        }
+        owner {
+          name
+        }
+        featuresCount
+      }
+      totalCount
+      isLastPage
     }
   }
 `;
