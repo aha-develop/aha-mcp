@@ -15,6 +15,10 @@ export interface RequirementResponse {
   requirement: Record;
 }
 
+export interface InitiativeResponse {
+  initiative: Record;
+}
+
 export interface PageResponse {
   page: {
     name: string;
