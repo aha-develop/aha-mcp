@@ -33,7 +33,13 @@ export class Handlers {
     try {
       let result: Record | undefined;
 
-      if (FEATURE_REF_REGEX.test(reference)) {
+      if (REQUIREMENT_REF_REGEX.test(reference)) {
+        const data = await this.client.request<RequirementResponse>(
+          getRequirementQuery,
+          { id: reference }
+        );
+        result = data.requirement;
+      } else if (FEATURE_REF_REGEX.test(reference)) {
         const data = await this.client.request<FeatureResponse>(
           getFeatureQuery,
           {
@@ -41,12 +47,6 @@ export class Handlers {
           }
         );
         result = data.feature;
-      } else if (REQUIREMENT_REF_REGEX.test(reference)) {
-        const data = await this.client.request<RequirementResponse>(
-          getRequirementQuery,
-          { id: reference }
-        );
-        result = data.requirement;
       } else {
         throw new McpError(
           ErrorCode.InvalidParams,
