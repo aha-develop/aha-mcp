@@ -7,12 +7,14 @@ import {
   Record,
   FeatureResponse,
   RequirementResponse,
+  InitiativeResponse,
   PageResponse,
   SearchResponse,
 } from "./types.js";
 import {
   getFeatureQuery,
   getRequirementQuery,
+  getInitiativeQuery,
   getPageQuery,
   searchDocumentsQuery,
 } from "./queries.js";
@@ -33,20 +35,31 @@ export class Handlers {
     try {
       let result: Record | undefined;
 
-      if (FEATURE_REF_REGEX.test(reference)) {
-        const data = await this.client.request<FeatureResponse>(
-          getFeatureQuery,
-          {
-            id: reference,
-          }
-        );
-        result = data.feature;
-      } else if (REQUIREMENT_REF_REGEX.test(reference)) {
+      if (REQUIREMENT_REF_REGEX.test(reference)) {
         const data = await this.client.request<RequirementResponse>(
           getRequirementQuery,
           { id: reference }
         );
         result = data.requirement;
+      } else if (FEATURE_REF_REGEX.test(reference)) {
+        try {
+          const data = await this.client.request<FeatureResponse>(
+            getFeatureQuery,
+            { id: reference }
+          );
+          result = data.feature;
+        } catch (featureError) {
+          const isNotFound =
+            featureError instanceof Error &&
+            featureError.message.includes("Record not found");
+          if (!isNotFound) throw featureError;
+          // Reference may be an initiative — try initiative query as fallback
+          const data = await this.client.request<InitiativeResponse>(
+            getInitiativeQuery,
+            { id: reference }
+          );
+          result = data.initiative;
+        }
       } else {
         throw new McpError(
           ErrorCode.InvalidParams,
@@ -149,10 +162,11 @@ export class Handlers {
   }
 
   async handleSearchDocuments(request: any) {
-    const { query, searchableType = "Page" } = request.params.arguments as {
+    const { query, searchableType } = request.params.arguments as {
       query: string;
       searchableType?: string;
     };
+    const types = searchableType ? [searchableType] : ["Initiative", "Page"];
 
     if (!query) {
       throw new McpError(ErrorCode.InvalidParams, "Search query is required");
@@ -163,7 +177,7 @@ export class Handlers {
         searchDocumentsQuery,
         {
           query,
-          searchableType: [searchableType],
+          searchableType: types,
         }
       );
 
