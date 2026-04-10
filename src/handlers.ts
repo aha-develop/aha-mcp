@@ -89,6 +89,39 @@ export class Handlers {
     ].join("");
   }
 
+  private async fetchAllPages<T>(
+    path: string,
+    key: string
+  ): Promise<T[]> {
+    const allItems: T[] = [];
+    let page = 1;
+
+    while (true) {
+      const separator = path.includes("?") ? "&" : "?";
+      const pagedPath = `${path}${separator}page=${page}`;
+      const data = await this.restRequest<any>(pagedPath, "GET");
+      const pageItems = Array.isArray(data?.[key]) ? data[key] : [];
+      allItems.push(...pageItems);
+
+      const pagination = data?.pagination;
+      if (
+        pagination &&
+        typeof pagination.current_page === "number" &&
+        typeof pagination.total_pages === "number"
+      ) {
+        if (pagination.current_page >= pagination.total_pages) {
+          break;
+        }
+      } else if (pageItems.length === 0) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return allItems;
+  }
+
   async handleGetRecord(request: any) {
     const { reference } = request.params.arguments as { reference: string };
 
@@ -591,6 +624,171 @@ export class Handlers {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to update epic: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleGetEpic(request: any) {
+    const { reference_num } = request.params.arguments as {
+      reference_num: string;
+    };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Epic reference_num is required"
+      );
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/epics/${encodeURIComponent(reference_num)}`,
+        "GET"
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to get epic: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleGetInitiative(request: any) {
+    const { reference_num } = request.params.arguments as {
+      reference_num: string;
+    };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Initiative reference_num is required"
+      );
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/initiatives/${encodeURIComponent(reference_num)}`,
+        "GET"
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to get initiative: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleGetGoal(request: any) {
+    const { reference_num } = request.params.arguments as {
+      reference_num: string;
+    };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Goal reference_num is required"
+      );
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/goals/${encodeURIComponent(reference_num)}`,
+        "GET"
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to get goal: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleListInitiatives(request: any) {
+    const { product_id } = request.params.arguments as {
+      product_id: string;
+    };
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Product/workspace identifier is required"
+      );
+    }
+
+    try {
+      const initiatives = await this.fetchAllPages<any>(
+        `/api/v1/products/${encodeURIComponent(product_id)}/initiatives`,
+        "initiatives"
+      );
+
+      const summaries = initiatives.map((initiative) => ({
+        reference_num: initiative.reference_num,
+        name: initiative.name,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list initiatives: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleListGoals(request: any) {
+    const { product_id } = request.params.arguments as {
+      product_id: string;
+    };
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Product/workspace identifier is required"
+      );
+    }
+
+    try {
+      const goals = await this.fetchAllPages<any>(
+        `/api/v1/products/${encodeURIComponent(product_id)}/goals`,
+        "goals"
+      );
+
+      const summaries = goals.map((goal) => ({
+        reference_num: goal.reference_num,
+        name: goal.name,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list goals: ${errorMessage}`
       );
     }
   }
