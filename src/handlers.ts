@@ -4,11 +4,15 @@ import {
   FEATURE_REF_REGEX,
   REQUIREMENT_REF_REGEX,
   NOTE_REF_REGEX,
-  Record,
+  Record as AhaRecord,
   FeatureResponse,
   RequirementResponse,
   PageResponse,
   SearchResponse,
+  ListProductsResponse,
+  ListReleasesResponse,
+  ListFeaturesResponse,
+  ListEpicsResponse,
 } from "./types.js";
 import {
   getFeatureQuery,
@@ -18,7 +22,72 @@ import {
 } from "./queries.js";
 
 export class Handlers {
-  constructor(private client: GraphQLClient) {}
+  constructor(
+    private client: GraphQLClient,
+    private ahaDomain: string,
+    private ahaApiToken: string
+  ) {}
+
+  private async restRequest<T>(
+    path: string,
+    method: "GET" | "POST" | "PUT",
+    body?: unknown
+  ): Promise<T> {
+    const response = await fetch(`https://${this.ahaDomain}.aha.io${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${this.ahaApiToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(
+        `Aha! REST API request failed (${response.status}): ${errorBody}`
+      );
+    }
+
+    return (await response.json()) as T;
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  private formatProblemStatementHtml(description: string): string {
+    if (/<strong>\s*Problem\s*<\/strong>/i.test(description)) {
+      return description;
+    }
+
+    const normalized = description.trim();
+    if (!normalized) {
+      return description;
+    }
+
+    const whySplit = normalized.split(/why this matters\s*:/i);
+    const desiredSplit = whySplit[1]
+      ? whySplit[1].split(/desired outcome\s*:/i)
+      : [];
+
+    const problemText = this.escapeHtml(whySplit[0]?.trim() || "");
+    const whyText = this.escapeHtml(desiredSplit[0]?.trim() || "");
+    const desiredText = this.escapeHtml(desiredSplit[1]?.trim() || "");
+
+    return [
+      "<p><strong>Problem</strong></p>",
+      `<p>${problemText}</p>`,
+      "<p><strong>Why this matters</strong></p>",
+      `<p>${whyText}</p>`,
+      "<p><strong>Desired outcome</strong></p>",
+      `<p>${desiredText}</p>`,
+    ].join("");
+  }
 
   async handleGetRecord(request: any) {
     const { reference } = request.params.arguments as { reference: string };
@@ -31,7 +100,7 @@ export class Handlers {
     }
 
     try {
-      let result: Record | undefined;
+      let result: AhaRecord | undefined;
 
       if (FEATURE_REF_REGEX.test(reference)) {
         const data = await this.client.request<FeatureResponse>(
@@ -189,4 +258,341 @@ export class Handlers {
       );
     }
   }
+
+  async handleListProducts() {
+    try {
+      const data = await this.restRequest<ListProductsResponse>(
+        "/api/v1/products",
+        "GET"
+      );
+
+      const summaries = (data.products || []).map((product) => ({
+        id: product.id,
+        reference_prefix: product.reference_prefix,
+        name: product.name,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list products: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleListReleases(request: any) {
+    const { product_id } = request.params.arguments as {
+      product_id: string;
+    };
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Product/workspace identifier is required"
+      );
+    }
+
+    try {
+      const data = await this.restRequest<ListReleasesResponse>(
+        `/api/v1/products/${encodeURIComponent(product_id)}/releases`,
+        "GET"
+      );
+
+      const summaries = (data.releases || []).map((release) => ({
+        id: release.id,
+        name: release.name,
+        release_date: release.release_date,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list releases: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleListFeatures(request: any) {
+    const { product_id } = request.params.arguments as {
+      product_id: string;
+    };
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Product/workspace identifier is required"
+      );
+    }
+
+    try {
+      const data = await this.restRequest<ListFeaturesResponse>(
+        `/api/v1/products/${encodeURIComponent(product_id)}/features`,
+        "GET"
+      );
+
+      const summaries = (data.features || []).map((feature) => ({
+        reference_num: feature.reference_num,
+        name: feature.name,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list features: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleListEpics(request: any) {
+    const { product_id } = request.params.arguments as {
+      product_id: string;
+    };
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Product/workspace identifier is required"
+      );
+    }
+
+    try {
+      const data = await this.restRequest<ListEpicsResponse>(
+        `/api/v1/products/${encodeURIComponent(product_id)}/epics`,
+        "GET"
+      );
+
+      const summaries = (data.epics || []).map((epic) => ({
+        reference_num: epic.reference_num,
+        name: epic.name,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list epics: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleCreateEpic(request: any) {
+    const { product_id, name, release_id, description } =
+      request.params.arguments as {
+        product_id: string;
+        name: string;
+        release_id: string;
+        description?: string;
+      };
+
+    if (!product_id || !name || !release_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "product_id, name, and release_id are required"
+      );
+    }
+
+    const epicPayload: { [key: string]: unknown } = { name, release_id };
+    if (description) {
+      epicPayload.description = this.formatProblemStatementHtml(description);
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/products/${encodeURIComponent(product_id)}/epics`,
+        "POST",
+        { epic: epicPayload }
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to create epic: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleCreateFeature(request: any) {
+    const { product_id, name, release_id, epic_id, description } =
+      request.params.arguments as {
+        product_id: string;
+        name: string;
+        release_id: string;
+        epic_id?: string;
+        description?: string;
+      };
+
+    if (!product_id || !name || !release_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "product_id, name, and release_id are required"
+      );
+    }
+
+    const featurePayload: { [key: string]: unknown } = { name, release_id };
+    if (epic_id) {
+      featurePayload.epic_id = epic_id;
+    }
+    if (description) {
+      featurePayload.description = this.formatProblemStatementHtml(description);
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/products/${encodeURIComponent(product_id)}/features`,
+        "POST",
+        { feature: featurePayload }
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to create feature: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleUpdateFeature(request: any) {
+    const { reference_num, name, description } = request.params.arguments as {
+      reference_num: string;
+      name?: string;
+      description?: string;
+    };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Feature reference_num is required"
+      );
+    }
+
+    if (!name && !description) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "At least one of name or description must be provided"
+      );
+    }
+
+    if (!FEATURE_REF_REGEX.test(reference_num)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Invalid feature reference number format. Expected DEVELOP-123"
+      );
+    }
+
+    const featurePayload: { [key: string]: unknown } = {};
+    if (name) {
+      featurePayload.name = name;
+    }
+    if (description) {
+      featurePayload.description = this.formatProblemStatementHtml(description);
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/features/${encodeURIComponent(reference_num)}`,
+        "PUT",
+        { feature: featurePayload }
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to update feature: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleUpdateEpic(request: any) {
+    const { reference_num, name, description } = request.params.arguments as {
+      reference_num: string;
+      name?: string;
+      description?: string;
+    };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Epic reference_num is required"
+      );
+    }
+
+    if (!name && !description) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "At least one of name or description must be provided"
+      );
+    }
+
+    const epicPayload: { [key: string]: unknown } = {};
+    if (name) {
+      epicPayload.name = name;
+    }
+    if (description) {
+      epicPayload.description = this.formatProblemStatementHtml(description);
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/epics/${encodeURIComponent(reference_num)}`,
+        "PUT",
+        { epic: epicPayload }
+      );
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to update epic: ${errorMessage}`
+      );
+    }
+  }
+
 }
