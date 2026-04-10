@@ -420,7 +420,7 @@ export class Handlers {
       );
     }
 
-    const epicPayload: { [key: string]: unknown } = { name, release_id };
+    const epicPayload: { [key: string]: unknown } = { name, release: release_id };
     if (description) {
       epicPayload.description = description;
     }
@@ -463,7 +463,7 @@ export class Handlers {
 
     const featurePayload: { [key: string]: unknown } = { name, release_id };
     if (epic_id) {
-      featurePayload.epic_id = epic_id;
+      featurePayload.epic = epic_id;
     }
     if (description) {
       featurePayload.description = description;
