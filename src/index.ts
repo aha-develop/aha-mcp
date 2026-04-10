@@ -45,7 +45,7 @@ class AhaMcp {
       },
       {
         capabilities: {
-          tools: {},
+          tools: { listChanged: true },
         },
       }
     );
