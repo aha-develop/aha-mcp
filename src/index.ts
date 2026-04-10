@@ -197,7 +197,7 @@ class AhaMcp {
               description: {
                 type: "string",
                 description:
-                  "Optional problem statement text; converted to simple HTML sections",
+                  "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
               },
             },
             required: ["product_id", "name", "release_id"],
@@ -229,7 +229,7 @@ class AhaMcp {
               description: {
                 type: "string",
                 description:
-                  "Optional problem statement text; converted to simple HTML sections",
+                  "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
               },
             },
             required: ["product_id", "name", "release_id"],
@@ -253,7 +253,7 @@ class AhaMcp {
               description: {
                 type: "string",
                 description:
-                  "New problem statement text; converted to simple HTML sections",
+                  "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
               },
             },
             required: ["reference_num"],
@@ -277,7 +277,7 @@ class AhaMcp {
               description: {
                 type: "string",
                 description:
-                  "New problem statement text; converted to simple HTML sections",
+                  "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
               },
             },
             required: ["reference_num"],
