@@ -283,6 +283,78 @@ class AhaMcp {
             required: ["reference_num"],
           },
         },
+        {
+          name: "get_epic",
+          description: "Get an Aha! epic by reference number",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Epic reference number",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
+        {
+          name: "get_initiative",
+          description: "Get an Aha! initiative by reference number",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Initiative reference number",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
+        {
+          name: "get_goal",
+          description: "Get an Aha! goal by reference number",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Goal reference number",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
+        {
+          name: "list_initiatives",
+          description:
+            "List Aha! initiatives in a product/workspace, returning reference numbers and names",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
+        {
+          name: "list_goals",
+          description:
+            "List Aha! goals in a product/workspace, returning reference numbers and names",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
       ],
     }));
 
@@ -309,6 +381,16 @@ class AhaMcp {
         return this.handlers.handleUpdateEpic(request);
       } else if (request.params.name === "update_feature") {
         return this.handlers.handleUpdateFeature(request);
+      } else if (request.params.name === "get_epic") {
+        return this.handlers.handleGetEpic(request);
+      } else if (request.params.name === "get_initiative") {
+        return this.handlers.handleGetInitiative(request);
+      } else if (request.params.name === "get_goal") {
+        return this.handlers.handleGetGoal(request);
+      } else if (request.params.name === "list_initiatives") {
+        return this.handlers.handleListInitiatives(request);
+      } else if (request.params.name === "list_goals") {
+        return this.handlers.handleListGoals(request);
       }
 
       throw new McpError(
