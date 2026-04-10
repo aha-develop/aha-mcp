@@ -452,7 +452,7 @@ export class Handlers {
       );
     }
 
-    const featurePayload: { [key: string]: unknown } = { name, release_id };
+    const featurePayload: { [key: string]: unknown } = { name };
     if (epic_id) {
       featurePayload.epic_id = epic_id;
     }
@@ -494,7 +494,7 @@ export class Handlers {
       );
     }
 
-    if (!name && !description) {
+    if (name === undefined && description === undefined) {
       throw new McpError(
         ErrorCode.InvalidParams,
         "At least one of name or description must be provided"
@@ -509,10 +509,10 @@ export class Handlers {
     }
 
     const featurePayload: { [key: string]: unknown } = {};
-    if (name) {
+    if (name !== undefined) {
       featurePayload.name = name;
     }
-    if (description) {
+    if (description !== undefined) {
       featurePayload.description = this.formatProblemStatementHtml(description);
     }
 
