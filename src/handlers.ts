@@ -53,42 +53,6 @@ export class Handlers {
     return (await response.json()) as T;
   }
 
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  private formatProblemStatementHtml(description: string): string {
-    if (/<strong>\s*Problem\s*<\/strong>/i.test(description)) {
-      return description;
-    }
-
-    const normalized = description.trim();
-    if (!normalized) {
-      return description;
-    }
-
-    const whySplit = normalized.split(/why this matters\s*:/i);
-    const desiredSplit = whySplit[1]
-      ? whySplit[1].split(/desired outcome\s*:/i)
-      : [];
-
-    const problemText = this.escapeHtml(whySplit[0]?.trim() || "");
-    const whyText = this.escapeHtml(desiredSplit[0]?.trim() || "");
-    const desiredText = this.escapeHtml(desiredSplit[1]?.trim() || "");
-
-    return [
-      "<p><strong>Problem</strong></p>",
-      `<p>${problemText}</p>`,
-      "<p><strong>Why this matters</strong></p>",
-      `<p>${whyText}</p>`,
-      "<p><strong>Desired outcome</strong></p>",
-      `<p>${desiredText}</p>`,
-    ].join("");
-  }
-
   private async fetchAllPages<T>(
     path: string,
     key: string
@@ -445,7 +409,7 @@ export class Handlers {
 
     const epicPayload: { [key: string]: unknown } = { name, release_id };
     if (description) {
-      epicPayload.description = this.formatProblemStatementHtml(description);
+      epicPayload.description = description;
     }
 
     try {
@@ -490,7 +454,7 @@ export class Handlers {
       featurePayload.epic_id = epic_id;
     }
     if (description) {
-      featurePayload.description = this.formatProblemStatementHtml(description);
+      featurePayload.description = description;
     }
 
     try {
@@ -546,7 +510,7 @@ export class Handlers {
       featurePayload.name = name;
     }
     if (description !== undefined) {
-      featurePayload.description = this.formatProblemStatementHtml(description);
+      featurePayload.description = description;
     }
 
     try {
@@ -600,7 +564,7 @@ export class Handlers {
       epicPayload.name = name;
     }
     if (description) {
-      epicPayload.description = this.formatProblemStatementHtml(description);
+      epicPayload.description = description;
     }
 
     try {

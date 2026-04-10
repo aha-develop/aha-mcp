@@ -293,8 +293,8 @@ List goals for a product/workspace.
 2. **Human-readable summary returns for list endpoints**
    - Most list tools intentionally return compact summaries instead of full payloads.
 
-3. **Problem statement formatting helper**
-   - Create/update on feature/epic applies a shared HTML formatter for descriptions to encourage structured records.
+3. **Description pass-through contract**
+   - Create/update on feature/epic passes `description` through verbatim to Aha!; callers are responsible for supplying well-formed HTML.
 
 4. **Pagination helper for some list endpoints**
    - `list_initiatives` and `list_goals` page through all results; other list endpoints currently do single-request fetches.
@@ -320,9 +320,8 @@ These are worth knowing before making further changes:
    - `update_epic` uses truthy checks.
    - Result: empty-string update behavior is inconsistent.
 
-5. **Description formatter behavior is opinionated**
-   - Auto-injects fixed HTML section structure.
-   - May be surprising for customers expecting literal pass-through text.
+5. **Description formatter behavior is opinionated** *(resolved)*
+   - Description formatting helper removed; create/update handlers now pass `description` through verbatim.
 
 6. **List endpoint behavior is inconsistent**
    - Initiatives/goals fetch all pages; releases/features/epics do not currently use the same helper.
@@ -349,15 +348,14 @@ These are worth knowing before making further changes:
 
 - [ ] Standardize identifier parameter naming (`reference` vs `reference_num`) or provide aliases.
 
-- [ ] Decide and document whether description formatting should be opt-in, opt-out, or always pass-through.
-
 - [ ] Normalize list pagination behavior across all list tools.
 
 - [ ] Expand README tool documentation from 3 tools to full inventory.
 
 ### Completed
 
-- (none yet)
+- [x] Decide and document whether description formatting should be opt-in, opt-out, or always pass-through.
+  - Resolved: description is now always passed through verbatim; formatting is the caller's responsibility.
 
 ---
 
