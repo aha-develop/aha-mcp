@@ -51,3 +51,41 @@ export interface SearchResponse {
     isLastPage: boolean;
   };
 }
+
+export interface AhaFeatureSummary {
+  reference_num: string;
+  name: string;
+}
+
+export interface AhaEpicSummary {
+  reference_num: string;
+  name: string;
+}
+
+export interface ListFeaturesResponse {
+  features: AhaFeatureSummary[];
+}
+
+export interface ListEpicsResponse {
+  epics: AhaEpicSummary[];
+}
+
+export interface AhaProductSummary {
+  id: string | number;
+  reference_prefix: string;
+  name: string;
+}
+
+export interface ListProductsResponse {
+  products: AhaProductSummary[];
+}
+
+export interface AhaReleaseSummary {
+  id: string | number;
+  name: string;
+  release_date: string | null;
+}
+
+export interface ListReleasesResponse {
+  releases: AhaReleaseSummary[];
+}

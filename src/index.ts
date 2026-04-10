@@ -21,11 +21,14 @@ if (!AHA_DOMAIN) {
   throw new Error("AHA_DOMAIN environment variable is required");
 }
 
+const verifiedAhaApiToken = AHA_API_TOKEN;
+const verifiedAhaDomain = AHA_DOMAIN;
+
 const client = new GraphQLClient(
-  `https://${AHA_DOMAIN}.aha.io/api/v2/graphql`,
+  `https://${verifiedAhaDomain}.aha.io/api/v2/graphql`,
   {
     headers: {
-      Authorization: `Bearer ${AHA_API_TOKEN}`,
+      Authorization: `Bearer ${verifiedAhaApiToken}`,
     },
   }
 );
@@ -47,7 +50,11 @@ class AhaMcp {
       }
     );
 
-    this.handlers = new Handlers(client);
+    this.handlers = new Handlers(
+      client,
+      verifiedAhaDomain,
+      verifiedAhaApiToken
+    );
     this.setupToolHandlers();
 
     this.server.onerror = (error) => console.error("[MCP Error]", error);
@@ -114,6 +121,168 @@ class AhaMcp {
             required: ["query"],
           },
         },
+        {
+          name: "list_products",
+          description:
+            "List Aha! workspaces/products with id, reference prefix, and name",
+          inputSchema: {
+            type: "object",
+            properties: {},
+          },
+        },
+        {
+          name: "list_releases",
+          description:
+            "List releases in an Aha! product/workspace with id, name, and release date",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
+        {
+          name: "list_epics",
+          description:
+            "List Aha! epics in a product/workspace, returning reference numbers and names",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
+        {
+          name: "list_features",
+          description:
+            "List Aha! features in a product/workspace, returning reference numbers and names",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
+        {
+          name: "create_epic",
+          description:
+            "Create an Aha! epic in a product/workspace, optionally with HTML description",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+              name: {
+                type: "string",
+                description: "Epic name",
+              },
+              release_id: {
+                type: "string",
+                description: "Target release identifier",
+              },
+              description: {
+                type: "string",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
+              },
+            },
+            required: ["product_id", "name", "release_id"],
+          },
+        },
+        {
+          name: "create_feature",
+          description:
+            "Create an Aha! feature in a product/workspace, optionally linked to an epic and with HTML description",
+          inputSchema: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
+              name: {
+                type: "string",
+                description: "Feature name",
+              },
+              release_id: {
+                type: "string",
+                description: "Target release identifier",
+              },
+              epic_id: {
+                type: "string",
+                description: "Optional epic identifier to associate",
+              },
+              description: {
+                type: "string",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
+              },
+            },
+            required: ["product_id", "name", "release_id"],
+          },
+        },
+        {
+          name: "update_epic",
+          description:
+            "Update an Aha! epic by reference number; can update name and/or description",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Epic reference number",
+              },
+              name: {
+                type: "string",
+                description: "New epic name",
+              },
+              description: {
+                type: "string",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
+        {
+          name: "update_feature",
+          description:
+            "Update an Aha! feature by reference number; can update name and/or description",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Feature reference number (e.g., DEVELOP-123)",
+              },
+              name: {
+                type: "string",
+                description: "New feature name",
+              },
+              description: {
+                type: "string",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
       ],
     }));
 
@@ -124,6 +293,22 @@ class AhaMcp {
         return this.handlers.handleGetPage(request);
       } else if (request.params.name === "search_documents") {
         return this.handlers.handleSearchDocuments(request);
+      } else if (request.params.name === "list_products") {
+        return this.handlers.handleListProducts();
+      } else if (request.params.name === "list_releases") {
+        return this.handlers.handleListReleases(request);
+      } else if (request.params.name === "list_features") {
+        return this.handlers.handleListFeatures(request);
+      } else if (request.params.name === "list_epics") {
+        return this.handlers.handleListEpics(request);
+      } else if (request.params.name === "create_epic") {
+        return this.handlers.handleCreateEpic(request);
+      } else if (request.params.name === "create_feature") {
+        return this.handlers.handleCreateFeature(request);
+      } else if (request.params.name === "update_epic") {
+        return this.handlers.handleUpdateEpic(request);
+      } else if (request.params.name === "update_feature") {
+        return this.handlers.handleUpdateFeature(request);
       }
 
       throw new McpError(
