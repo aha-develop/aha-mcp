@@ -131,51 +131,6 @@ class AhaMcp {
           },
         },
         {
-          name: "get_epic",
-          description:
-            "Get an Aha! epic by reference number with top-level fields from the REST API",
-          inputSchema: {
-            type: "object",
-            properties: {
-              reference_num: {
-                type: "string",
-                description: "Epic reference number (e.g., STU-E-66)",
-              },
-            },
-            required: ["reference_num"],
-          },
-        },
-        {
-          name: "get_initiative",
-          description:
-            "Get an Aha! initiative by reference number with top-level fields from the REST API",
-          inputSchema: {
-            type: "object",
-            properties: {
-              reference_num: {
-                type: "string",
-                description: "Initiative reference number",
-              },
-            },
-            required: ["reference_num"],
-          },
-        },
-        {
-          name: "get_goal",
-          description:
-            "Get an Aha! goal by reference number with top-level fields from the REST API",
-          inputSchema: {
-            type: "object",
-            properties: {
-              reference_num: {
-                type: "string",
-                description: "Goal reference number",
-              },
-            },
-            required: ["reference_num"],
-          },
-        },
-        {
           name: "list_releases",
           description:
             "List releases in an Aha! product/workspace with id, name, and release date",
@@ -194,36 +149,6 @@ class AhaMcp {
           name: "list_epics",
           description:
             "List Aha! epics in a product/workspace, returning reference numbers and names",
-          inputSchema: {
-            type: "object",
-            properties: {
-              product_id: {
-                type: "string",
-                description: "Product/workspace identifier",
-              },
-            },
-            required: ["product_id"],
-          },
-        },
-        {
-          name: "list_initiatives",
-          description:
-            "List Aha! initiatives in a product/workspace, returning reference numbers and names",
-          inputSchema: {
-            type: "object",
-            properties: {
-              product_id: {
-                type: "string",
-                description: "Product/workspace identifier",
-              },
-            },
-            required: ["product_id"],
-          },
-        },
-        {
-          name: "list_goals",
-          description:
-            "List Aha! goals in a product/workspace, returning reference numbers and names",
           inputSchema: {
             type: "object",
             properties: {
@@ -271,7 +196,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "Optional description text",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
               },
             },
             required: ["product_id", "name", "release_id"],
@@ -280,10 +206,14 @@ class AhaMcp {
         {
           name: "create_feature",
           description:
-            "Create an Aha! feature in a release, optionally linked to an epic",
+            "Create an Aha! feature in a product/workspace, optionally linked to an epic and with HTML description",
           inputSchema: {
             type: "object",
             properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
               name: {
                 type: "string",
                 description: "Feature name",
@@ -298,10 +228,11 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "Optional description text",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
               },
             },
-            required: ["name", "release_id"],
+            required: ["product_id", "name", "release_id"],
           },
         },
         {
@@ -321,7 +252,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "New description text",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
               },
             },
             required: ["reference_num"],
@@ -344,7 +276,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "New description text",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
               },
             },
             required: ["reference_num"],
@@ -362,22 +295,12 @@ class AhaMcp {
         return this.handlers.handleSearchDocuments(request);
       } else if (request.params.name === "list_products") {
         return this.handlers.handleListProducts();
-      } else if (request.params.name === "get_epic") {
-        return this.handlers.handleGetEpic(request);
-      } else if (request.params.name === "get_initiative") {
-        return this.handlers.handleGetInitiative(request);
-      } else if (request.params.name === "get_goal") {
-        return this.handlers.handleGetGoal(request);
       } else if (request.params.name === "list_releases") {
         return this.handlers.handleListReleases(request);
       } else if (request.params.name === "list_features") {
         return this.handlers.handleListFeatures(request);
       } else if (request.params.name === "list_epics") {
         return this.handlers.handleListEpics(request);
-      } else if (request.params.name === "list_initiatives") {
-        return this.handlers.handleListInitiatives(request);
-      } else if (request.params.name === "list_goals") {
-        return this.handlers.handleListGoals(request);
       } else if (request.params.name === "create_epic") {
         return this.handlers.handleCreateEpic(request);
       } else if (request.params.name === "create_feature") {
