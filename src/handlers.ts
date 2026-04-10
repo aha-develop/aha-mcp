@@ -53,47 +53,41 @@ export class Handlers {
     return (await response.json()) as T;
   }
 
-  private async fetchAllPages<T>(
-    path: string,
-    collectionKey: string
-  ): Promise<T[]> {
-    const results: T[] = [];
-    let page = 1;
-
-    while (true) {
-      const separator = path.includes("?") ? "&" : "?";
-      const data = await this.restRequest<any>(
-        `${path}${separator}page=${page}`,
-        "GET"
-      );
-
-      const pageItems = (data?.[collectionKey] || []) as T[];
-      results.push(...pageItems);
-
-      const pagination = data?.pagination as
-        | { total_pages?: number; current_page?: number; next_page?: number }
-        | undefined;
-
-      if (!pagination) {
-        break;
-      }
-
-      if (pagination.next_page) {
-        page = pagination.next_page;
-        continue;
-      }
-
-      if (pagination.total_pages && page < pagination.total_pages) {
-        page += 1;
-        continue;
-      }
-
-      break;
-    }
-
-    return results;
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
+  private formatProblemStatementHtml(description: string): string {
+    if (/<strong>\s*Problem\s*<\/strong>/i.test(description)) {
+      return description;
+    }
+
+    const normalized = description.trim();
+    if (!normalized) {
+      return description;
+    }
+
+    const whySplit = normalized.split(/why this matters\s*:/i);
+    const desiredSplit = whySplit[1]
+      ? whySplit[1].split(/desired outcome\s*:/i)
+      : [];
+
+    const problemText = this.escapeHtml(whySplit[0]?.trim() || "");
+    const whyText = this.escapeHtml(desiredSplit[0]?.trim() || "");
+    const desiredText = this.escapeHtml(desiredSplit[1]?.trim() || "");
+
+    return [
+      "<p><strong>Problem</strong></p>",
+      `<p>${problemText}</p>`,
+      "<p><strong>Why this matters</strong></p>",
+      `<p>${whyText}</p>`,
+      "<p><strong>Desired outcome</strong></p>",
+      `<p>${desiredText}</p>`,
+    ].join("");
+  }
 
   async handleGetRecord(request: any) {
     const { reference } = request.params.arguments as { reference: string };
@@ -267,12 +261,12 @@ export class Handlers {
 
   async handleListProducts() {
     try {
-      const products = await this.fetchAllPages<ListProductsResponse["products"][number]>(
+      const data = await this.restRequest<ListProductsResponse>(
         "/api/v1/products",
-        "products"
+        "GET"
       );
 
-      const summaries = products.map((product) => ({
+      const summaries = (data.products || []).map((product) => ({
         id: product.id,
         reference_prefix: product.reference_prefix,
         name: product.name,
@@ -304,14 +298,12 @@ export class Handlers {
     }
 
     try {
-      const releases = await this.fetchAllPages<
-        ListReleasesResponse["releases"][number]
-      >(
+      const data = await this.restRequest<ListReleasesResponse>(
         `/api/v1/products/${encodeURIComponent(product_id)}/releases`,
-        "releases"
+        "GET"
       );
 
-      const summaries = releases.map((release) => ({
+      const summaries = (data.releases || []).map((release) => ({
         id: release.id,
         name: release.name,
         release_date: release.release_date,
@@ -343,14 +335,12 @@ export class Handlers {
     }
 
     try {
-      const features = await this.fetchAllPages<
-        ListFeaturesResponse["features"][number]
-      >(
+      const data = await this.restRequest<ListFeaturesResponse>(
         `/api/v1/products/${encodeURIComponent(product_id)}/features`,
-        "features"
+        "GET"
       );
 
-      const summaries = features.map((feature) => ({
+      const summaries = (data.features || []).map((feature) => ({
         reference_num: feature.reference_num,
         name: feature.name,
       }));
@@ -381,12 +371,12 @@ export class Handlers {
     }
 
     try {
-      const epics = await this.fetchAllPages<ListEpicsResponse["epics"][number]>(
+      const data = await this.restRequest<ListEpicsResponse>(
         `/api/v1/products/${encodeURIComponent(product_id)}/epics`,
-        "epics"
+        "GET"
       );
 
-      const summaries = epics.map((epic) => ({
+      const summaries = (data.epics || []).map((epic) => ({
         reference_num: epic.reference_num,
         name: epic.name,
       }));
@@ -420,9 +410,9 @@ export class Handlers {
       );
     }
 
-    const epicPayload: { [key: string]: unknown } = { name, release: release_id };
+    const epicPayload: { [key: string]: unknown } = { name, release_id };
     if (description) {
-      epicPayload.description = description;
+      epicPayload.description = this.formatProblemStatementHtml(description);
     }
 
     try {
@@ -446,32 +436,33 @@ export class Handlers {
   }
 
   async handleCreateFeature(request: any) {
-    const { name, release_id, epic_id, description } = request.params
-      .arguments as {
-      name: string;
-      release_id: string;
-      epic_id?: string;
-      description?: string;
-    };
+    const { product_id, name, release_id, epic_id, description } =
+      request.params.arguments as {
+        product_id: string;
+        name: string;
+        release_id: string;
+        epic_id?: string;
+        description?: string;
+      };
 
-    if (!name || !release_id) {
+    if (!product_id || !name || !release_id) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        "name and release_id are required"
+        "product_id, name, and release_id are required"
       );
     }
 
     const featurePayload: { [key: string]: unknown } = { name, release_id };
     if (epic_id) {
-      featurePayload.epic = epic_id;
+      featurePayload.epic_id = epic_id;
     }
     if (description) {
-      featurePayload.description = description;
+      featurePayload.description = this.formatProblemStatementHtml(description);
     }
 
     try {
       const result = await this.restRequest(
-        `/api/v1/releases/${encodeURIComponent(release_id)}/features`,
+        `/api/v1/products/${encodeURIComponent(product_id)}/features`,
         "POST",
         { feature: featurePayload }
       );
@@ -522,7 +513,7 @@ export class Handlers {
       featurePayload.name = name;
     }
     if (description) {
-      featurePayload.description = description;
+      featurePayload.description = this.formatProblemStatementHtml(description);
     }
 
     try {
@@ -576,7 +567,7 @@ export class Handlers {
       epicPayload.name = name;
     }
     if (description) {
-      epicPayload.description = description;
+      epicPayload.description = this.formatProblemStatementHtml(description);
     }
 
     try {

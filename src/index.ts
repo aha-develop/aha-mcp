@@ -196,7 +196,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "Optional description text",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
               },
             },
             required: ["product_id", "name", "release_id"],
@@ -205,10 +206,14 @@ class AhaMcp {
         {
           name: "create_feature",
           description:
-            "Create an Aha! feature in a release, optionally linked to an epic",
+            "Create an Aha! feature in a product/workspace, optionally linked to an epic and with HTML description",
           inputSchema: {
             type: "object",
             properties: {
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier",
+              },
               name: {
                 type: "string",
                 description: "Feature name",
@@ -223,10 +228,11 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "Optional description text",
+                description:
+                  "Optional problem statement text; converted to simple HTML sections",
               },
             },
-            required: ["name", "release_id"],
+            required: ["product_id", "name", "release_id"],
           },
         },
         {
@@ -246,7 +252,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "New description text",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
               },
             },
             required: ["reference_num"],
@@ -269,7 +276,8 @@ class AhaMcp {
               },
               description: {
                 type: "string",
-                description: "New description text",
+                description:
+                  "New problem statement text; converted to simple HTML sections",
               },
             },
             required: ["reference_num"],
