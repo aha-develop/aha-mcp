@@ -89,3 +89,23 @@ export interface AhaReleaseSummary {
 export interface ListReleasesResponse {
   releases: AhaReleaseSummary[];
 }
+
+export interface AhaGoalSummary {
+  id: string | number;
+  reference_num: string;
+  name: string;
+}
+
+export interface AhaInitiativeSummary {
+  id: string | number;
+  reference_num: string;
+  name: string;
+}
+
+export interface ListGoalsResponse {
+  goals: AhaGoalSummary[];
+}
+
+export interface ListInitiativesResponse {
+  initiatives: AhaInitiativeSummary[];
+}

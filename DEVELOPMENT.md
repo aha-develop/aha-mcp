@@ -66,9 +66,9 @@ Required environment variables:
 
 ---
 
-## Current tool inventory (16 tools)
+## Current tool inventory (17 tools)
 
-This fork currently exposes 16 MCP tools.
+This fork currently exposes 17 MCP tools.
 
 > Note: parameter names are listed exactly as currently implemented.
 
@@ -101,12 +101,13 @@ Get an Aha! note/page by reference.
 
 ### 3) `search_documents`
 
-Search Aha! documents.
+Search Aha! records by full-text query.
 
 - **Required params**
   - `query: string`
 - **Optional params**
   - `searchableType?: string` (default `"Page"`)
+  - Valid values: `"Feature"`, `"Epic"`, `"Initiative"`, `"Page"`
 - **Backend**
   - GraphQL `searchDocuments` query.
   - Internally wrapped as single-item list `[searchableType]`.
@@ -201,11 +202,15 @@ Update an epic by reference number.
 - **Optional params**
   - `name?: string`
   - `description?: string`
+  - `initiative_reference_num?: string` — links epic to an initiative
+  - `goal_ids?: number[]` — links epic to goals (numeric IDs from `list_goals`)
 - **Backend**
   - REST `PUT /api/v1/epics/{reference_num}` with `{ epic: ... }`
+  - `initiative_reference_num` maps to `initiative` field in the REST payload
+  - `goal_ids` maps to `goals` field in the REST payload
 - **Validation behavior**
-  - Requires at least one of `name` or `description`.
-  - Uses truthy checks, so empty-string updates are rejected implicitly.
+  - Requires at least one of `name`, `description`, `initiative_reference_num`, or `goal_ids`.
+  - Uses `undefined` checks (aligned with `update_feature`).
 - **Returns**
   - Full REST update response object.
 
@@ -218,15 +223,40 @@ Update a feature by reference number.
 - **Optional params**
   - `name?: string`
   - `description?: string`
+  - `epic_id?: string` — links feature to an epic
+  - `initiative_reference_num?: string` — links feature to an initiative
+  - `goal_ids?: number[]` — links feature to goals (numeric IDs from `list_goals`)
 - **Backend**
   - REST `PUT /api/v1/features/{reference_num}` with `{ feature: ... }`
+  - `epic_id` maps to `epic_id` field in the REST payload
+  - `initiative_reference_num` maps to `initiative` field in the REST payload
+  - `goal_ids` maps to `goals` field in the REST payload
 - **Validation behavior**
-  - Requires at least one of `name` or `description`.
+  - Requires at least one of `name`, `description`, `epic_id`, `initiative_reference_num`, or `goal_ids`.
   - Uses `undefined` checks, so explicit empty-string fields are allowed.
 - **Returns**
   - Full REST update response object.
 
-### 12) `get_epic`
+### 12) `update_initiative`
+
+Update an initiative by reference number.
+
+- **Required params**
+  - `reference_num: string`
+- **Optional params**
+  - `name?: string`
+  - `description?: string`
+  - `goal_ids?: number[]` — links initiative to goals (numeric IDs from `list_goals`)
+- **Backend**
+  - REST `PUT /api/v1/initiatives/{reference_num}` with `{ initiative: ... }`
+  - `goal_ids` maps to `goals` field in the REST payload
+- **Validation behavior**
+  - Requires at least one of `name`, `description`, or `goal_ids`.
+  - Uses `undefined` checks.
+- **Returns**
+  - Full REST update response object.
+
+### 13) `get_epic`
 
 Get an epic by reference number.
 
@@ -237,7 +267,7 @@ Get an epic by reference number.
 - **Returns**
   - Full REST epic response object.
 
-### 13) `get_initiative`
+### 14) `get_initiative`
 
 Get an initiative by reference number.
 
@@ -248,7 +278,7 @@ Get an initiative by reference number.
 - **Returns**
   - Full REST initiative response object.
 
-### 14) `get_goal`
+### 15) `get_goal`
 
 Get a goal by reference number.
 
@@ -259,7 +289,7 @@ Get a goal by reference number.
 - **Returns**
   - Full REST goal response object.
 
-### 15) `list_initiatives`
+### 16) `list_initiatives`
 
 List initiatives for a product/workspace.
 
@@ -269,9 +299,9 @@ List initiatives for a product/workspace.
   - REST `GET /api/v1/products/{product_id}/initiatives`
   - Uses internal pagination loop to fetch all pages.
 - **Returns (summary projection)**
-  - `reference_num`, `name`
+  - `id`, `reference_num`, `name`
 
-### 16) `list_goals`
+### 17) `list_goals`
 
 List goals for a product/workspace.
 
@@ -281,7 +311,7 @@ List goals for a product/workspace.
   - REST `GET /api/v1/products/{product_id}/goals`
   - Uses internal pagination loop to fetch all pages.
 - **Returns (summary projection)**
-  - `reference_num`, `name`
+  - `id`, `reference_num`, `name`
 
 ---
 
@@ -337,14 +367,8 @@ These are worth knowing before making further changes:
 
 ### Open
 
-- [ ] **Support `initiative_reference_num` on `update_epic`**
-  - **Why:** Aha! API supports linking an epic to an initiative via `initiative_reference_num`, but this tool does not expose it yet.
-  - **Expected change:**
-    - Add optional `initiative_reference_num: string` parameter to MCP schema for `update_epic`.
-    - Pass the field through in the REST payload (`{ epic: { ... } }`).
-    - Update docs/tests accordingly.
-
 - [ ] Align create/update contracts for `release_id` and ensure `create_feature` payload includes required fields.
+- [ ] `list_features` and `list_epics` do not include `id` in their summary projections; other list tools now do.
 
 - [ ] Standardize identifier parameter naming (`reference` vs `reference_num`) or provide aliases.
 
@@ -353,6 +377,15 @@ These are worth knowing before making further changes:
 - [ ] Expand README tool documentation from 3 tools to full inventory.
 
 ### Completed
+
+- [x] **Support linking on `update_epic`, `update_feature`, `update_initiative`**
+  - Added `initiative_reference_num` and `goal_ids` to `update_epic`.
+  - Added `epic_id`, `initiative_reference_num`, and `goal_ids` to `update_feature`.
+  - Added new `update_initiative` tool with `goal_ids` support.
+  - Also fixed `update_epic` validation to use `undefined` checks (was using truthy checks, inconsistent with `update_feature`).
+
+- [x] **Document `search_documents` searchable types**
+  - `searchableType` now documents valid values: `"Feature"`, `"Epic"`, `"Initiative"`, `"Page"`.
 
 - [x] Decide and document whether description formatting should be opt-in, opt-out, or always pass-through.
   - Resolved: description is now always passed through verbatim; formatting is the caller's responsibility.

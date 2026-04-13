@@ -104,7 +104,8 @@ class AhaMcp {
         },
         {
           name: "search_documents",
-          description: "Search for Aha! documents",
+          description:
+            "Search Aha! records by full-text query across features, epics, initiatives, or pages",
           inputSchema: {
             type: "object",
             properties: {
@@ -114,7 +115,8 @@ class AhaMcp {
               },
               searchableType: {
                 type: "string",
-                description: "Type of document to search for (e.g., Page)",
+                description:
+                  'Type of record to search. Valid values: "Feature", "Epic", "Initiative", "Page". Defaults to "Page".',
                 default: "Page",
               },
             },
@@ -238,7 +240,7 @@ class AhaMcp {
         {
           name: "update_epic",
           description:
-            "Update an Aha! epic by reference number; can update name and/or description",
+            "Update an Aha! epic by reference number; can update name, description, and/or linking fields (initiative, goals)",
           inputSchema: {
             type: "object",
             properties: {
@@ -255,6 +257,17 @@ class AhaMcp {
                 description:
                   "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
               },
+              initiative_reference_num: {
+                type: "string",
+                description:
+                  "Initiative reference number or ID to link this epic to (e.g., ACME-I-5)",
+              },
+              goal_ids: {
+                type: "array",
+                items: { type: "number" },
+                description:
+                  "Array of numeric goal IDs to link this epic to. Use list_goals to find IDs.",
+              },
             },
             required: ["reference_num"],
           },
@@ -262,7 +275,7 @@ class AhaMcp {
         {
           name: "update_feature",
           description:
-            "Update an Aha! feature by reference number; can update name and/or description",
+            "Update an Aha! feature by reference number; can update name, description, and/or linking fields (epic, initiative, goals)",
           inputSchema: {
             type: "object",
             properties: {
@@ -278,6 +291,51 @@ class AhaMcp {
                 type: "string",
                 description:
                   "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
+              },
+              epic_id: {
+                type: "string",
+                description: "Epic reference number or ID to link this feature to",
+              },
+              initiative_reference_num: {
+                type: "string",
+                description:
+                  "Initiative reference number or ID to link this feature to (e.g., ACME-I-5)",
+              },
+              goal_ids: {
+                type: "array",
+                items: { type: "number" },
+                description:
+                  "Array of numeric goal IDs to link this feature to. Use list_goals to find IDs.",
+              },
+            },
+            required: ["reference_num"],
+          },
+        },
+        {
+          name: "update_initiative",
+          description:
+            "Update an Aha! initiative by reference number; can update name, description, and/or link to goals",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference_num: {
+                type: "string",
+                description: "Initiative reference number (e.g., ACME-I-5)",
+              },
+              name: {
+                type: "string",
+                description: "New initiative name",
+              },
+              description: {
+                type: "string",
+                description:
+                  "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content.",
+              },
+              goal_ids: {
+                type: "array",
+                items: { type: "number" },
+                description:
+                  "Array of numeric goal IDs to link this initiative to. Use list_goals to find IDs.",
               },
             },
             required: ["reference_num"],
@@ -328,7 +386,7 @@ class AhaMcp {
         {
           name: "list_initiatives",
           description:
-            "List Aha! initiatives in a product/workspace, returning reference numbers and names",
+            "List Aha! initiatives in a product/workspace, returning IDs, reference numbers, and names",
           inputSchema: {
             type: "object",
             properties: {
@@ -343,7 +401,7 @@ class AhaMcp {
         {
           name: "list_goals",
           description:
-            "List Aha! goals in a product/workspace, returning reference numbers and names",
+            "List Aha! goals in a product/workspace, returning IDs, reference numbers, and names",
           inputSchema: {
             type: "object",
             properties: {
@@ -381,6 +439,8 @@ class AhaMcp {
         return this.handlers.handleUpdateEpic(request);
       } else if (request.params.name === "update_feature") {
         return this.handlers.handleUpdateFeature(request);
+      } else if (request.params.name === "update_initiative") {
+        return this.handlers.handleUpdateInitiative(request);
       } else if (request.params.name === "get_epic") {
         return this.handlers.handleGetEpic(request);
       } else if (request.params.name === "get_initiative") {

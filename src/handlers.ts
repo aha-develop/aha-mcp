@@ -13,6 +13,8 @@ import {
   ListReleasesResponse,
   ListFeaturesResponse,
   ListEpicsResponse,
+  AhaGoalSummary,
+  AhaInitiativeSummary,
 } from "./types.js";
 import {
   getFeatureQuery,
@@ -478,11 +480,15 @@ export class Handlers {
   }
 
   async handleUpdateFeature(request: any) {
-    const { reference_num, name, description } = request.params.arguments as {
-      reference_num: string;
-      name?: string;
-      description?: string;
-    };
+    const { reference_num, name, description, epic_id, initiative_reference_num, goal_ids } =
+      request.params.arguments as {
+        reference_num: string;
+        name?: string;
+        description?: string;
+        epic_id?: string;
+        initiative_reference_num?: string;
+        goal_ids?: number[];
+      };
 
     if (!reference_num) {
       throw new McpError(
@@ -491,10 +497,16 @@ export class Handlers {
       );
     }
 
-    if (name === undefined && description === undefined) {
+    if (
+      name === undefined &&
+      description === undefined &&
+      epic_id === undefined &&
+      initiative_reference_num === undefined &&
+      goal_ids === undefined
+    ) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        "At least one of name or description must be provided"
+        "At least one of name, description, epic_id, initiative_reference_num, or goal_ids must be provided"
       );
     }
 
@@ -511,6 +523,15 @@ export class Handlers {
     }
     if (description !== undefined) {
       featurePayload.description = description;
+    }
+    if (epic_id !== undefined) {
+      featurePayload.epic_id = epic_id;
+    }
+    if (initiative_reference_num !== undefined) {
+      featurePayload.initiative = initiative_reference_num;
+    }
+    if (goal_ids !== undefined) {
+      featurePayload.goals = goal_ids;
     }
 
     try {
@@ -539,11 +560,14 @@ export class Handlers {
   }
 
   async handleUpdateEpic(request: any) {
-    const { reference_num, name, description } = request.params.arguments as {
-      reference_num: string;
-      name?: string;
-      description?: string;
-    };
+    const { reference_num, name, description, initiative_reference_num, goal_ids } =
+      request.params.arguments as {
+        reference_num: string;
+        name?: string;
+        description?: string;
+        initiative_reference_num?: string;
+        goal_ids?: number[];
+      };
 
     if (!reference_num) {
       throw new McpError(
@@ -552,19 +576,30 @@ export class Handlers {
       );
     }
 
-    if (!name && !description) {
+    if (
+      name === undefined &&
+      description === undefined &&
+      initiative_reference_num === undefined &&
+      goal_ids === undefined
+    ) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        "At least one of name or description must be provided"
+        "At least one of name, description, initiative_reference_num, or goal_ids must be provided"
       );
     }
 
     const epicPayload: { [key: string]: unknown } = {};
-    if (name) {
+    if (name !== undefined) {
       epicPayload.name = name;
     }
-    if (description) {
+    if (description !== undefined) {
       epicPayload.description = description;
+    }
+    if (initiative_reference_num !== undefined) {
+      epicPayload.initiative = initiative_reference_num;
+    }
+    if (goal_ids !== undefined) {
+      epicPayload.goals = goal_ids;
     }
 
     try {
@@ -698,12 +733,13 @@ export class Handlers {
     }
 
     try {
-      const initiatives = await this.fetchAllPages<any>(
+      const initiatives = await this.fetchAllPages<AhaInitiativeSummary>(
         `/api/v1/products/${encodeURIComponent(product_id)}/initiatives`,
         "initiatives"
       );
 
       const summaries = initiatives.map((initiative) => ({
+        id: initiative.id,
         reference_num: initiative.reference_num,
         name: initiative.name,
       }));
@@ -734,12 +770,13 @@ export class Handlers {
     }
 
     try {
-      const goals = await this.fetchAllPages<any>(
+      const goals = await this.fetchAllPages<AhaGoalSummary>(
         `/api/v1/products/${encodeURIComponent(product_id)}/goals`,
         "goals"
       );
 
       const summaries = goals.map((goal) => ({
+        id: goal.id,
         reference_num: goal.reference_num,
         name: goal.name,
       }));
@@ -753,6 +790,60 @@ export class Handlers {
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to list goals: ${errorMessage}`
+      );
+    }
+  }
+
+  async handleUpdateInitiative(request: any) {
+    const { reference_num, name, description, goal_ids } =
+      request.params.arguments as {
+        reference_num: string;
+        name?: string;
+        description?: string;
+        goal_ids?: number[];
+      };
+
+    if (!reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Initiative reference_num is required"
+      );
+    }
+
+    if (name === undefined && description === undefined && goal_ids === undefined) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "At least one of name, description, or goal_ids must be provided"
+      );
+    }
+
+    const initiativePayload: { [key: string]: unknown } = {};
+    if (name !== undefined) {
+      initiativePayload.name = name;
+    }
+    if (description !== undefined) {
+      initiativePayload.description = description;
+    }
+    if (goal_ids !== undefined) {
+      initiativePayload.goals = goal_ids;
+    }
+
+    try {
+      const result = await this.restRequest(
+        `/api/v1/initiatives/${encodeURIComponent(reference_num)}`,
+        "PUT",
+        { initiative: initiativePayload }
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to update initiative: ${errorMessage}`
       );
     }
   }
