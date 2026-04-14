@@ -77,7 +77,7 @@ This fork currently exposes 17 MCP tools.
 Get a feature or requirement by reference.
 
 - **Required params**
-  - `reference: string`
+  - `reference_num: string`
 - **Accepted format (validated)**
   - Feature: `ABC-123`
   - Requirement: `ABC-123-1`
@@ -91,7 +91,7 @@ Get a feature or requirement by reference.
 Get an Aha! note/page by reference.
 
 - **Required params**
-  - `reference: string` (format like `ABC-N-213`)
+  - `reference_num: string` (format like `ABC-N-213`)
 - **Optional params**
   - `includeParent?: boolean` (default `false`)
 - **Backend**
@@ -133,6 +133,7 @@ List releases for a product/workspace.
   - `product_id: string`
 - **Backend**
   - REST `GET /api/v1/products/{product_id}/releases`
+  - Uses internal pagination loop to fetch all pages.
 - **Returns (summary projection)**
   - `id`, `name`, `release_date`
 
@@ -144,8 +145,9 @@ List epics for a product/workspace.
   - `product_id: string`
 - **Backend**
   - REST `GET /api/v1/products/{product_id}/epics`
+  - Uses internal pagination loop to fetch all pages.
 - **Returns (summary projection)**
-  - `reference_num`, `name`
+  - `id`, `reference_num`, `name`
 
 ### 7) `list_features`
 
@@ -155,8 +157,9 @@ List features for a product/workspace.
   - `product_id: string`
 - **Backend**
   - REST `GET /api/v1/products/{product_id}/features`
+  - Uses internal pagination loop to fetch all pages.
 - **Returns (summary projection)**
-  - `reference_num`, `name`
+  - `id`, `reference_num`, `name`
 
 ### 8) `create_epic`
 
@@ -188,8 +191,6 @@ Create a feature in a product/workspace.
   - `description?: string`
 - **Backend**
   - REST `POST /api/v1/products/{product_id}/features` with `{ feature: ... }`
-- **Important inconsistency**
-  - `release_id` is validated as required but is **not currently included** in the REST payload.
 - **Returns**
   - Full REST create response object.
 
@@ -228,7 +229,7 @@ Update a feature by reference number.
   - `goal_ids?: number[]` — links feature to goals (numeric IDs from `list_goals`)
 - **Backend**
   - REST `PUT /api/v1/features/{reference_num}` with `{ feature: ... }`
-  - `epic_id` maps to `epic_id` field in the REST payload
+  - `epic_id` maps to `epic` field in the REST payload
   - `initiative_reference_num` maps to `initiative` field in the REST payload
   - `goal_ids` maps to `goals` field in the REST payload
 - **Validation behavior**
@@ -243,12 +244,13 @@ Update an initiative by reference number.
 
 - **Required params**
   - `reference_num: string`
+  - `product_id: string`
 - **Optional params**
   - `name?: string`
   - `description?: string`
   - `goal_ids?: number[]` — links initiative to goals (numeric IDs from `list_goals`)
 - **Backend**
-  - REST `PUT /api/v1/initiatives/{reference_num}` with `{ initiative: ... }`
+  - REST `PUT /api/v1/products/{product_id}/initiatives/{reference_num}` with `{ initiative: ... }`
   - `goal_ids` maps to `goals` field in the REST payload
 - **Validation behavior**
   - Requires at least one of `name`, `description`, or `goal_ids`.
@@ -335,26 +337,24 @@ List goals for a product/workspace.
 
 These are worth knowing before making further changes:
 
-1. **Mixed identifier naming across tools**
-   - Some tools use `reference`, others use `reference_num`.
-   - This increases prompt and client complexity.
+1. **Mixed identifier naming across tools** *(resolved)*
+   - All tools now use `reference_num` consistently.
 
 2. **Mixed backend protocols (GraphQL + REST)**
    - Different error shapes, field availability, and response conventions.
+   - Accepted as-is; consolidation would require a larger refactor.
 
-3. **`create_feature` required-but-unused `release_id`**
-   - API contract and implementation are out of sync.
+3. **`create_feature` required-but-unused `release_id`** *(resolved)*
+   - `release_id` is now included in the REST payload.
 
-4. **Update validation semantics differ between feature and epic**
-   - `update_feature` uses `undefined` checks.
-   - `update_epic` uses truthy checks.
-   - Result: empty-string update behavior is inconsistent.
+4. **Update validation semantics differ between feature and epic** *(resolved)*
+   - Both `update_feature` and `update_epic` now use `undefined` checks.
 
 5. **Description formatter behavior is opinionated** *(resolved)*
    - Description formatting helper removed; create/update handlers now pass `description` through verbatim.
 
-6. **List endpoint behavior is inconsistent**
-   - Initiatives/goals fetch all pages; releases/features/epics do not currently use the same helper.
+6. **List endpoint behavior is inconsistent** *(resolved)*
+   - All list endpoints (`releases`, `features`, `epics`, `initiatives`, `goals`) now use `fetchAllPages`.
 
 7. **Tool docs lag implementation**
    - `README.md` currently documents only the original 3 tools.
@@ -367,16 +367,21 @@ These are worth knowing before making further changes:
 
 ### Open
 
-- [ ] Align create/update contracts for `release_id` and ensure `create_feature` payload includes required fields.
-- [ ] `list_features` and `list_epics` do not include `id` in their summary projections; other list tools now do.
-
-- [ ] Standardize identifier parameter naming (`reference` vs `reference_num`) or provide aliases.
-
-- [ ] Normalize list pagination behavior across all list tools.
-
 - [ ] Expand README tool documentation from 3 tools to full inventory.
 
 ### Completed
+
+- [x] **Standardize identifier parameter naming** — all tools now use `reference_num`; `get_record` and `get_page` previously used `reference`.
+
+- [x] **Fix `create_feature` payload** — `release_id` is now included in the REST body (was required by schema but silently omitted).
+
+- [x] **Normalize list pagination** — `list_releases`, `list_features`, `list_epics` now use `fetchAllPages`; consistent with `list_initiatives` and `list_goals`.
+
+- [x] **Add `id` to `list_features` and `list_epics` summaries** — projection now returns `id`, `reference_num`, `name` (aligned with other list tools).
+
+- [x] **Fix `update_initiative` endpoint** — now uses product-scoped route `/api/v1/products/{product_id}/initiatives/{reference_num}`; `product_id` added as required param.
+
+- [x] **Fix `update_feature` epic link field** — `epic_id` input now maps to `epic` field in the REST payload (API contract correction).
 
 - [x] **Support linking on `update_epic`, `update_feature`, `update_initiative`**
   - Added `initiative_reference_num` and `goal_ids` to `update_epic`.

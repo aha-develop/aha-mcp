@@ -73,13 +73,13 @@ class AhaMcp {
           inputSchema: {
             type: "object",
             properties: {
-              reference: {
+              reference_num: {
                 type: "string",
                 description:
                   "Reference number (e.g., DEVELOP-123 or ADT-123-1)",
               },
             },
-            required: ["reference"],
+            required: ["reference_num"],
           },
         },
         {
@@ -89,7 +89,7 @@ class AhaMcp {
           inputSchema: {
             type: "object",
             properties: {
-              reference: {
+              reference_num: {
                 type: "string",
                 description: "Reference number (e.g., ABC-N-213)",
               },
@@ -99,7 +99,7 @@ class AhaMcp {
                 default: false,
               },
             },
-            required: ["reference"],
+            required: ["reference_num"],
           },
         },
         {
@@ -322,6 +322,10 @@ class AhaMcp {
                 type: "string",
                 description: "Initiative reference number (e.g., ACME-I-5)",
               },
+              product_id: {
+                type: "string",
+                description: "Product/workspace identifier that owns the initiative",
+              },
               name: {
                 type: "string",
                 description: "New initiative name",
@@ -338,7 +342,7 @@ class AhaMcp {
                   "Array of numeric goal IDs to link this initiative to. Use list_goals to find IDs.",
               },
             },
-            required: ["reference_num"],
+            required: ["reference_num", "product_id"],
           },
         },
         {

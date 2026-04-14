@@ -10,9 +10,9 @@ import {
   PageResponse,
   SearchResponse,
   ListProductsResponse,
-  ListReleasesResponse,
-  ListFeaturesResponse,
-  ListEpicsResponse,
+  AhaReleaseSummary,
+  AhaFeatureSummary,
+  AhaEpicSummary,
   AhaGoalSummary,
   AhaInitiativeSummary,
 } from "./types.js";
@@ -89,9 +89,9 @@ export class Handlers {
   }
 
   async handleGetRecord(request: any) {
-    const { reference } = request.params.arguments as { reference: string };
+    const { reference_num } = request.params.arguments as { reference_num: string };
 
-    if (!reference) {
+    if (!reference_num) {
       throw new McpError(
         ErrorCode.InvalidParams,
         "Reference number is required"
@@ -101,18 +101,18 @@ export class Handlers {
     try {
       let result: AhaRecord | undefined;
 
-      if (FEATURE_REF_REGEX.test(reference)) {
+      if (FEATURE_REF_REGEX.test(reference_num)) {
         const data = await this.client.request<FeatureResponse>(
           getFeatureQuery,
           {
-            id: reference,
+            id: reference_num,
           }
         );
         result = data.feature;
-      } else if (REQUIREMENT_REF_REGEX.test(reference)) {
+      } else if (REQUIREMENT_REF_REGEX.test(reference_num)) {
         const data = await this.client.request<RequirementResponse>(
           getRequirementQuery,
-          { id: reference }
+          { id: reference_num }
         );
         result = data.requirement;
       } else {
@@ -127,7 +127,7 @@ export class Handlers {
           content: [
             {
               type: "text",
-              text: `No record found for reference ${reference}`,
+              text: `No record found for reference ${reference_num}`,
             },
           ],
         };
@@ -157,19 +157,19 @@ export class Handlers {
   }
 
   async handleGetPage(request: any) {
-    const { reference, includeParent = false } = request.params.arguments as {
-      reference: string;
+    const { reference_num, includeParent = false } = request.params.arguments as {
+      reference_num: string;
       includeParent?: boolean;
     };
 
-    if (!reference) {
+    if (!reference_num) {
       throw new McpError(
         ErrorCode.InvalidParams,
         "Reference number is required"
       );
     }
 
-    if (!NOTE_REF_REGEX.test(reference)) {
+    if (!NOTE_REF_REGEX.test(reference_num)) {
       throw new McpError(
         ErrorCode.InvalidParams,
         "Invalid reference number format. Expected ABC-N-213"
@@ -178,7 +178,7 @@ export class Handlers {
 
     try {
       const data = await this.client.request<PageResponse>(getPageQuery, {
-        id: reference,
+        id: reference_num,
         includeParent,
       });
 
@@ -187,7 +187,7 @@ export class Handlers {
           content: [
             {
               type: "text",
-              text: `No page found for reference ${reference}`,
+              text: `No page found for reference ${reference_num}`,
             },
           ],
         };
@@ -297,12 +297,12 @@ export class Handlers {
     }
 
     try {
-      const data = await this.restRequest<ListReleasesResponse>(
+      const releases = await this.fetchAllPages<AhaReleaseSummary>(
         `/api/v1/products/${encodeURIComponent(product_id)}/releases`,
-        "GET"
+        "releases"
       );
 
-      const summaries = (data.releases || []).map((release) => ({
+      const summaries = releases.map((release) => ({
         id: release.id,
         name: release.name,
         release_date: release.release_date,
@@ -334,12 +334,13 @@ export class Handlers {
     }
 
     try {
-      const data = await this.restRequest<ListFeaturesResponse>(
+      const features = await this.fetchAllPages<AhaFeatureSummary>(
         `/api/v1/products/${encodeURIComponent(product_id)}/features`,
-        "GET"
+        "features"
       );
 
-      const summaries = (data.features || []).map((feature) => ({
+      const summaries = features.map((feature) => ({
+        id: feature.id,
         reference_num: feature.reference_num,
         name: feature.name,
       }));
@@ -370,12 +371,13 @@ export class Handlers {
     }
 
     try {
-      const data = await this.restRequest<ListEpicsResponse>(
+      const epics = await this.fetchAllPages<AhaEpicSummary>(
         `/api/v1/products/${encodeURIComponent(product_id)}/epics`,
-        "GET"
+        "epics"
       );
 
-      const summaries = (data.epics || []).map((epic) => ({
+      const summaries = epics.map((epic) => ({
+        id: epic.id,
         reference_num: epic.reference_num,
         name: epic.name,
       }));
@@ -451,7 +453,7 @@ export class Handlers {
       );
     }
 
-    const featurePayload: { [key: string]: unknown } = { name };
+    const featurePayload: { [key: string]: unknown } = { name, release_id };
     if (epic_id) {
       featurePayload.epic_id = epic_id;
     }
@@ -525,7 +527,7 @@ export class Handlers {
       featurePayload.description = description;
     }
     if (epic_id !== undefined) {
-      featurePayload.epic_id = epic_id;
+      featurePayload.epic = epic_id;
     }
     if (initiative_reference_num !== undefined) {
       featurePayload.initiative = initiative_reference_num;
@@ -795,9 +797,10 @@ export class Handlers {
   }
 
   async handleUpdateInitiative(request: any) {
-    const { reference_num, name, description, goal_ids } =
+    const { reference_num, product_id, name, description, goal_ids } =
       request.params.arguments as {
         reference_num: string;
+        product_id: string;
         name?: string;
         description?: string;
         goal_ids?: number[];
@@ -807,6 +810,13 @@ export class Handlers {
       throw new McpError(
         ErrorCode.InvalidParams,
         "Initiative reference_num is required"
+      );
+    }
+
+    if (!product_id) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "product_id is required"
       );
     }
 
@@ -830,7 +840,7 @@ export class Handlers {
 
     try {
       const result = await this.restRequest(
-        `/api/v1/initiatives/${encodeURIComponent(reference_num)}`,
+        `/api/v1/products/${encodeURIComponent(product_id)}/initiatives/${encodeURIComponent(reference_num)}`,
         "PUT",
         { initiative: initiativePayload }
       );

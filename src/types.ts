@@ -53,11 +53,13 @@ export interface SearchResponse {
 }
 
 export interface AhaFeatureSummary {
+  id: string | number;
   reference_num: string;
   name: string;
 }
 
 export interface AhaEpicSummary {
+  id: string | number;
   reference_num: string;
   name: string;
 }
