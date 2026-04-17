@@ -17,28 +17,6 @@ export const getPageQuery = `
   }
 `;
 
-export const getFeatureQuery = `
-  query GetFeature($id: ID!) {
-    feature(id: $id) {
-      name
-      description {
-        markdownBody
-      }
-    }
-  }
-`;
-
-export const getRequirementQuery = `
-  query GetRequirement($id: ID!) {
-    requirement(id: $id) {
-      name
-      description {
-        markdownBody
-      }
-    }
-  }
-`;
-
 export const searchDocumentsQuery = `
   query SearchDocuments($query: String!, $searchableType: [String!]!) {
     searchDocuments(filters: {query: $query, searchableType: $searchableType}) {

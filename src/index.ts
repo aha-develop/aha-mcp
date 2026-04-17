@@ -69,7 +69,7 @@ class AhaMcp {
       tools: [
         {
           name: "get_record",
-          description: "Get an Aha! feature or requirement by reference number",
+          description: "Get an Aha! feature or requirement by reference number. Returns name, description, workflow status (name, complete flag), and linked epic. Use this to read current feature state before updating, or to confirm status after a update_feature call. For epics, use get_epic instead.",
           inputSchema: {
             type: "object",
             properties: {
@@ -135,7 +135,7 @@ class AhaMcp {
         {
           name: "list_releases",
           description:
-            "List releases in an Aha! product/workspace with id, name, and release date",
+            "List releases in an Aha! product/workspace with id, reference number, name, and release date",
           inputSchema: {
             type: "object",
             properties: {
@@ -145,6 +145,51 @@ class AhaMcp {
               },
             },
             required: ["product_id"],
+          },
+        },
+        {
+          name: "get_release",
+          description:
+            "Get a specific Aha! release by its reference number (e.g. STU-R-46). Returns the release name, date, linked initiatives, and internal ID. Use this to confirm release details or get the ID needed for listing its contents.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              release_reference_num: {
+                type: "string",
+                description: "The release reference number, e.g. STU-R-46",
+              },
+            },
+            required: ["release_reference_num"],
+          },
+        },
+        {
+          name: "list_features_in_release",
+          description:
+            "List all features assigned to a specific Aha! release, identified by reference number (e.g. STU-R-46). Returns each feature's reference number, name, workflow status, assigned epic, and assignee. Features with a null epic field are not yet tied to an epic — useful for spotting coverage gaps.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              release_reference_num: {
+                type: "string",
+                description: "The release reference number, e.g. STU-R-46",
+              },
+            },
+            required: ["release_reference_num"],
+          },
+        },
+        {
+          name: "list_epics_in_release",
+          description:
+            "List all epics assigned to a specific Aha! release, identified by reference number (e.g. STU-R-46). Returns each epic's reference number, name, workflow status, and feature count.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              release_reference_num: {
+                type: "string",
+                description: "The release reference number, e.g. STU-R-46",
+              },
+            },
+            required: ["release_reference_num"],
           },
         },
         {
@@ -240,7 +285,7 @@ class AhaMcp {
         {
           name: "update_epic",
           description:
-            "Update an Aha! epic by reference number; can update name, description, and/or linking fields (initiative, goals)",
+            "Update an Aha! epic by reference number; can update name, description, and/or linked release or initiative. Also supports setting `workflow_status` by name — status names are workspace-specific, so call `list_workflow_statuses` first if you are unsure of the valid values. Use `get_epic` to retrieve the current epic state before updating.",
           inputSchema: {
             type: "object",
             properties: {
@@ -268,6 +313,11 @@ class AhaMcp {
                 description:
                   "Array of numeric goal IDs to link this epic to. Use list_goals to find IDs.",
               },
+              workflow_status: {
+                type: "string",
+                description:
+                  "Workflow status name to set on this epic. Status names are workspace-specific — call list_workflow_statuses to retrieve valid values.",
+              },
             },
             required: ["reference_num"],
           },
@@ -275,7 +325,7 @@ class AhaMcp {
         {
           name: "update_feature",
           description:
-            "Update an Aha! feature by reference number; can update name, description, and/or linking fields (epic, initiative, goals)",
+            "Update an Aha! feature by reference number; can update name, description, and/or linked release, epic, initiative, or assignee. Also supports setting `workflow_status` by name — status names are workspace-specific, so call `list_workflow_statuses` first if you are unsure of the valid values. Use `get_record` to retrieve the current feature state before updating.",
           inputSchema: {
             type: "object",
             properties: {
@@ -306,6 +356,11 @@ class AhaMcp {
                 items: { type: "number" },
                 description:
                   "Array of numeric goal IDs to link this feature to. Use list_goals to find IDs.",
+              },
+              workflow_status: {
+                type: "string",
+                description:
+                  "Workflow status name to set on this feature. Status names are workspace-specific — call list_workflow_statuses to retrieve valid values.",
               },
             },
             required: ["reference_num"],
@@ -417,6 +472,28 @@ class AhaMcp {
             required: ["product_id"],
           },
         },
+        {
+          name: "list_workflow_statuses",
+          description:
+            "List all valid workflow status names for a given Aha! workspace. Returns status name, ID, position, and completion flag for each status in the workflow, grouped by workflow name. Call this before using update_feature or update_epic with a workflow_status value — status names are workspace-specific and cannot be assumed. Pass the workspace key (e.g. \"STU\") derived from any feature or epic reference number in that workspace.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              workspace_id: {
+                type: "string",
+                description:
+                  "Workspace key or numeric ID (e.g. \"LUM\" or \"LUM-1\"). Derived from the prefix of any feature or epic reference number in that workspace.",
+              },
+              record_type: {
+                type: "string",
+                enum: ["feature", "epic"],
+                description:
+                  "Type of record to retrieve statuses for: \"feature\" or \"epic\"",
+              },
+            },
+            required: ["workspace_id", "record_type"],
+          },
+        },
       ],
     }));
 
@@ -431,6 +508,12 @@ class AhaMcp {
         return this.handlers.handleListProducts();
       } else if (request.params.name === "list_releases") {
         return this.handlers.handleListReleases(request);
+      } else if (request.params.name === "get_release") {
+        return this.handlers.handleGetRelease(request);
+      } else if (request.params.name === "list_features_in_release") {
+        return this.handlers.handleListFeaturesInRelease(request);
+      } else if (request.params.name === "list_epics_in_release") {
+        return this.handlers.handleListEpicsInRelease(request);
       } else if (request.params.name === "list_features") {
         return this.handlers.handleListFeatures(request);
       } else if (request.params.name === "list_epics") {
@@ -455,6 +538,8 @@ class AhaMcp {
         return this.handlers.handleListInitiatives(request);
       } else if (request.params.name === "list_goals") {
         return this.handlers.handleListGoals(request);
+      } else if (request.params.name === "list_workflow_statuses") {
+        return this.handlers.handleListWorkflowStatuses(request);
       }
 
       throw new McpError(

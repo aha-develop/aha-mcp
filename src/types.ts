@@ -2,9 +2,18 @@ export interface Description {
   htmlBody: string;
 }
 
+export interface AhaWorkflowStatus {
+  id: string;
+  name: string;
+  position: number;
+  complete: boolean;
+  color: string;
+}
+
 export interface Record {
   name: string;
   description: Description;
+  workflow_status?: AhaWorkflowStatus | null;
 }
 
 export interface FeatureResponse {
@@ -85,6 +94,7 @@ export interface ListProductsResponse {
 export interface AhaReleaseSummary {
   id: string | number;
   name: string;
+  reference_num: string;
   release_date: string | null;
 }
 
@@ -110,4 +120,23 @@ export interface ListGoalsResponse {
 
 export interface ListInitiativesResponse {
   initiatives: AhaInitiativeSummary[];
+}
+
+export interface AhaFeatureInReleaseSummary {
+  id: string | number;
+  reference_num: string;
+  name: string;
+  workflow_status: { name: string } | null;
+  epic: { id: string | number; reference_num: string; name: string } | null;
+  assigned_to_user: { name: string } | null;
+  url: string;
+}
+
+export interface AhaEpicInReleaseSummary {
+  id: string | number;
+  reference_num: string;
+  name: string;
+  workflow_status: { name: string } | null;
+  features_count: number;
+  url: string;
 }
