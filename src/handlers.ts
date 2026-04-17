@@ -1297,6 +1297,32 @@ export class Handlers {
         ) {
           const existingRef =
             existingInitiative.reference_num ?? String(existingInitiative.id);
+
+          // Already linked to the requested initiative — idempotent success
+          if (
+            existingRef === target_reference_num ||
+            String(existingInitiative.id) === target_reference_num
+          ) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      success: true,
+                      mechanism: "ownership_field",
+                      source: source_reference_num,
+                      target: target_reference_num,
+                      note: `${source_reference_num} already belongs to initiative ${existingRef} — no change needed.`,
+                    },
+                    null,
+                    2
+                  ),
+                },
+              ],
+            };
+          }
+
           return {
             content: [
               {
