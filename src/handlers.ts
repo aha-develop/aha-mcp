@@ -122,7 +122,7 @@ export class Handlers {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: `No record found for reference ${reference_num}`,
             },
           ],
@@ -157,7 +157,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(result, null, 2),
           },
         ],
@@ -207,7 +207,7 @@ export class Handlers {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: `No page found for reference ${reference_num}`,
             },
           ],
@@ -217,7 +217,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(data.page, null, 2),
           },
         ],
@@ -259,7 +259,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(data.searchDocuments, null, 2),
           },
         ],
@@ -293,7 +293,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -331,7 +331,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -368,7 +368,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -405,7 +405,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -446,7 +446,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -491,7 +491,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -573,7 +573,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(result, null, 2),
           },
         ],
@@ -646,7 +646,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(result, null, 2),
           },
         ],
@@ -680,7 +680,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -711,7 +711,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -742,7 +742,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -779,7 +779,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -816,7 +816,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -875,7 +875,7 @@ export class Handlers {
       }
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -924,7 +924,7 @@ export class Handlers {
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: JSON.stringify(
               { total_count: summaries.length, features: summaries },
               null,
@@ -973,7 +973,7 @@ export class Handlers {
       }));
 
       return {
-        content: [{ type: "text", text: JSON.stringify(summaries, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(summaries, null, 2) }],
       };
     } catch (error) {
       const errorMessage =
@@ -1092,7 +1092,7 @@ export class Handlers {
     return {
       content: [
         {
-          type: "text",
+          type: "text" as const,
           text: JSON.stringify(results, null, 2),
         },
       ],
@@ -1149,7 +1149,7 @@ export class Handlers {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
       };
     } catch (error) {
       const errorMessage =

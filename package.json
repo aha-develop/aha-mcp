@@ -11,7 +11,7 @@
     "build/**/*"
   ],
   "scripts": {
-    "build": "tsc && chmod +x build/index.js",
+    "build": "tsc",
     "start": "node build/index.js",
     "mcp-start": "npm run build && npm run start",
     "prepublishOnly": "npm run build"
@@ -28,7 +28,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "graphql": "^16.0.0",
-    "graphql-request": "^6.0.0"
+    "graphql-request": "^6.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
