@@ -86,15 +86,15 @@ export class Handlers {
 
   // Maps user-facing record type to the record_type string in a POST /record_links body.
   private static readonly RECORD_TYPE_BODY: Record<string, string> = {
-    feature: "Feature",
-    epic: "MasterFeature",
-    release: "Release",
-    idea: "Idea",
-    initiative: "Initiative",
-    page: "Page",
-    goal: "Goal",
-    release_phase: "ReleasePhase",
-    requirement: "Requirement",
+    feature: "feature",
+    epic: "epic",
+    release: "release",
+    idea: "idea",
+    initiative: "initiative",
+    page: "page",
+    goal: "goal",
+    release_phase: "release_phase",
+    requirement: "requirement",
   };
 
   // Ownership hierarchy: higher index = higher order (goal is highest).
@@ -1237,13 +1237,13 @@ export class Handlers {
         tgtType === "goal"
       ) {
         const goalRecord = await this.resolveRecord("goal", target_reference_num);
-        const goalId = Number(goalRecord.id);
+        const goalId = String(goalRecord.id);
 
         const sourceRecord = await this.resolveRecord(srcType, source_reference_num);
         const existingGoals: any[] = Array.isArray(sourceRecord.goals)
           ? sourceRecord.goals
           : [];
-        const existingGoalIds = existingGoals.map((g: any) => Number(g.id));
+        const existingGoalIds = existingGoals.map((g: any) => String(g.id));
 
         if (!existingGoalIds.includes(goalId)) {
           const newGoalIds = [...existingGoalIds, goalId];
@@ -1364,13 +1364,13 @@ export class Handlers {
           await this.restRequest(
             `/api/v1/features/${encodeURIComponent(source_reference_num)}`,
             "PUT",
-            { feature: { release_id: target_reference_num } }
+            { feature: { release: target_reference_num } }
           );
         } else {
           await this.restRequest(
             `/api/v1/epics/${encodeURIComponent(source_reference_num)}`,
             "PUT",
-            { epic: { release_id: target_reference_num } }
+            { epic: { release: target_reference_num } }
           );
         }
 
@@ -1576,7 +1576,7 @@ export class Handlers {
       );
 
       const data = await this.restRequest<any>(
-        `/api/v1/${apiPath}/${encodeURIComponent(String(record.id))}/record_links`,
+        `/api/v1/${apiPath}/${encodeURIComponent(String(record.id))}/record_links?parent_and_child_links=true`,
         "GET"
       );
 
