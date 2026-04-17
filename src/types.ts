@@ -140,3 +140,26 @@ export interface AhaEpicInReleaseSummary {
   features_count: number;
   url: string;
 }
+
+export interface RecordLink {
+  link_id: string;
+  relationship: string;
+  linked_record_type: string;
+  linked_record_reference_num: string;
+  linked_record_name: string;
+  linked_record_status: string;
+}
+
+export interface CreateRecordLinkResult {
+  success: boolean;
+  mechanism: string;
+  source: string;
+  target: string;
+  relationship: string;
+  note?: string;
+}
+
+export interface DeleteRecordLinkResult {
+  success: boolean;
+  link_id: string;
+}

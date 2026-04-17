@@ -275,10 +275,10 @@ class AhaMcp {
               "Initiative reference number or ID to link this epic to (e.g., ACME-I-5)"
             ),
           goal_ids: z
-            .array(z.number())
+            .array(z.string())
             .optional()
             .describe(
-              "Array of numeric goal IDs to link this epic to. Use list_goals to find IDs."
+              "Array of goal IDs to link this epic to. Use list_goals to find IDs. Pass as strings to preserve full 64-bit precision, e.g. [\"7374514016881184006\"]."
             ),
           workflow_status: z
             .string()
@@ -319,10 +319,10 @@ class AhaMcp {
               "Initiative reference number or ID to link this feature to (e.g., ACME-I-5)"
             ),
           goal_ids: z
-            .array(z.number())
+            .array(z.string())
             .optional()
             .describe(
-              "Array of numeric goal IDs to link this feature to. Use list_goals to find IDs."
+              "Array of goal IDs to link this feature to. Use list_goals to find IDs. Pass as strings to preserve full 64-bit precision, e.g. [\"7374514016881184006\"]."
             ),
           workflow_status: z
             .string()
@@ -358,10 +358,10 @@ class AhaMcp {
               "Record body as raw HTML. Aha stores and renders HTML directly — pass well-formed tags (e.g. <p>Text here</p>, <ul><li>Item</li></ul>). Do not pass markdown. Do not HTML-entity-encode structural tags — only encode literal <, >, or & characters that appear as text content."
             ),
           goal_ids: z
-            .array(z.number())
+            .array(z.string())
             .optional()
             .describe(
-              "Array of numeric goal IDs to link this initiative to. Use list_goals to find IDs."
+              "Array of goal IDs to link this initiative to. Use list_goals to find IDs. Pass as strings to preserve full 64-bit precision, e.g. [\"7374514016881184006\"]."
             ),
         },
       },
@@ -429,6 +429,79 @@ class AhaMcp {
       },
       (args) =>
         this.handlers.handleListGoals({ params: { arguments: args } })
+    );
+
+    this.server.registerTool(
+      "create_record_link",
+      {
+        description:
+          "Create a relationship between any two Aha! records using reference numbers (e.g. STU-88, AP-E-79). Automatically routes ownership relationships (feature/epic to goal, initiative, release, or parent epic) to the correct field setter — no need to call update_feature or update_epic separately. For peer relationships use link_type: 10=Relates to, 20=Depends on, 30=Duplicated by, 40=Contained by, 50=Impacted by, 60=Blocked by, 80=Research for. link_type is optional — omit it and the handler infers from the record type hierarchy or asks. Supported types: feature, epic, release, idea, initiative, page, goal, release_phase, requirement.",
+        inputSchema: {
+          source_record_type: z
+            .string()
+            .describe(
+              "Type of the source record. One of: feature, epic, release, idea, initiative, page, goal, release_phase, requirement"
+            ),
+          source_reference_num: z
+            .string()
+            .describe(
+              "Reference number of the source record (e.g. STU-88, AP-E-79)"
+            ),
+          target_record_type: z
+            .string()
+            .describe(
+              "Type of the record being linked to. Same allowed values as source_record_type"
+            ),
+          target_reference_num: z
+            .string()
+            .describe("Reference number of the target record"),
+          link_type: z
+            .number()
+            .optional()
+            .describe(
+              "Numeric link type code: 10=Relates to, 20=Depends on, 30=Duplicated by, 40=Contained by, 50=Impacted by, 60=Blocked by, 80=Research for. Omit to let the handler infer from the record type hierarchy. Not used for ownership-routed cases (goal, initiative, release, epic parent)."
+            ),
+        },
+      },
+      (args) =>
+        this.handlers.handleCreateRecordLink({ params: { arguments: args } })
+    );
+
+    this.server.registerTool(
+      "list_record_links",
+      {
+        description:
+          "List all linked records for a given Aha! record. Returns each link's internal ID, relationship label, linked record reference number, name, and status. Use this before delete_record_link to obtain the link_id, or to inspect existing relationships before creating new ones.",
+        inputSchema: {
+          record_type: z
+            .string()
+            .describe(
+              "Type of the record to list links for. One of: feature, epic, release, idea, initiative, page, goal, release_phase, requirement"
+            ),
+          reference_num: z
+            .string()
+            .describe("Reference number of the record (e.g. STU-88, AP-E-79)"),
+        },
+      },
+      (args) =>
+        this.handlers.handleListRecordLinks({ params: { arguments: args } })
+    );
+
+    this.server.registerTool(
+      "delete_record_link",
+      {
+        description:
+          "Delete a specific record link by its internal link ID. Use list_record_links first to find the link_id. Works for all relationship types including \"Belongs to initiative\" and \"Belongs to goal\" ownership links. Always confirm with the user before deleting ownership links, as removing them affects roadmap rollups and reporting.",
+        inputSchema: {
+          link_id: z
+            .string()
+            .describe(
+              "Internal ID of the link to delete, as returned by list_record_links"
+            ),
+        },
+      },
+      (args) =>
+        this.handlers.handleDeleteRecordLink({ params: { arguments: args } })
     );
 
     this.server.registerTool(

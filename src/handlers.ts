@@ -29,7 +29,7 @@ export class Handlers {
 
   private async restRequest<T>(
     path: string,
-    method: "GET" | "POST" | "PUT",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     body?: unknown
   ): Promise<T> {
     const response = await fetch(`https://${this.ahaDomain}.aha.io${path}`, {
@@ -49,7 +49,108 @@ export class Handlers {
       );
     }
 
+    if (response.status === 204) {
+      return {} as T;
+    }
+
     return (await response.json()) as T;
+  }
+
+  // Maps user-facing record type to the URL path segment used in the record_links API.
+  // Epics are "master_features" in the Aha! REST API's record_links paths.
+  private static readonly RECORD_TYPE_API_PATH: Record<string, string> = {
+    feature: "features",
+    epic: "master_features",
+    release: "releases",
+    idea: "ideas",
+    initiative: "initiatives",
+    page: "pages",
+    goal: "goals",
+    release_phase: "release_phases",
+    requirement: "requirements",
+  };
+
+  // Maps user-facing record type to the path used for GET resolution.
+  // Epics are resolved via /api/v1/epics/:ref (consistent with existing handlers).
+  private static readonly RECORD_TYPE_FETCH_PATH: Record<string, string> = {
+    feature: "features",
+    epic: "epics",
+    release: "releases",
+    idea: "ideas",
+    initiative: "initiatives",
+    page: "pages",
+    goal: "goals",
+    release_phase: "release_phases",
+    requirement: "requirements",
+  };
+
+  // Maps user-facing record type to the record_type string in a POST /record_links body.
+  private static readonly RECORD_TYPE_BODY: Record<string, string> = {
+    feature: "Feature",
+    epic: "MasterFeature",
+    release: "Release",
+    idea: "Idea",
+    initiative: "Initiative",
+    page: "Page",
+    goal: "Goal",
+    release_phase: "ReleasePhase",
+    requirement: "Requirement",
+  };
+
+  // Ownership hierarchy: higher index = higher order (goal is highest).
+  // Used for hierarchy inference when link_type is omitted.
+  private static readonly HIERARCHY = [
+    "requirement",
+    "feature",
+    "epic",
+    "initiative",
+    "goal",
+  ] as const;
+
+  private static readonly LINK_TYPE_LABELS: Record<number, string> = {
+    10: "Relates to",
+    20: "Depends on",
+    30: "Duplicated by",
+    40: "Contained by",
+    50: "Impacted by",
+    60: "Blocked by",
+    80: "Research for",
+  };
+
+  // Resolves a user-facing record type + reference number to the full raw API record object.
+  // The returned object always includes an `id` field.
+  private async resolveRecord(type: string, referenceNum: string): Promise<any> {
+    const fetchPath = Handlers.RECORD_TYPE_FETCH_PATH[type];
+    if (!fetchPath) {
+      throw new McpError(ErrorCode.InvalidParams, `Unsupported record type: ${type}`);
+    }
+    try {
+      const data = await this.restRequest<any>(
+        `/api/v1/${fetchPath}/${encodeURIComponent(referenceNum)}?fields=*`,
+        "GET"
+      );
+      const record = data[type];
+      if (!record) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Record not found: ${type} ${referenceNum}`
+        );
+      }
+      return record;
+    } catch (error) {
+      if (error instanceof McpError) throw error;
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("(404)") || msg.includes("404")) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Record not found: ${type} ${referenceNum}`
+        );
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to resolve ${type} ${referenceNum}: ${msg}`
+      );
+    }
   }
 
   private async fetchAllPages<T>(
@@ -511,7 +612,7 @@ export class Handlers {
         description?: string;
         epic_id?: string;
         initiative_reference_num?: string;
-        goal_ids?: number[];
+        goal_ids?: string[];
         workflow_status?: string;
       };
 
@@ -595,7 +696,7 @@ export class Handlers {
         name?: string;
         description?: string;
         initiative_reference_num?: string;
-        goal_ids?: number[];
+        goal_ids?: string[];
         workflow_status?: string;
       };
 
@@ -1099,6 +1200,457 @@ export class Handlers {
     };
   }
 
+  async handleCreateRecordLink(request: any) {
+    const {
+      source_record_type,
+      source_reference_num,
+      target_record_type,
+      target_reference_num,
+      link_type: inputLinkType,
+    } = request.params.arguments as {
+      source_record_type: string;
+      source_reference_num: string;
+      target_record_type: string;
+      target_reference_num: string;
+      link_type?: number;
+    };
+
+    if (
+      !source_record_type ||
+      !source_reference_num ||
+      !target_record_type ||
+      !target_reference_num
+    ) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "source_record_type, source_reference_num, target_record_type, and target_reference_num are required"
+      );
+    }
+
+    const srcType = source_record_type.toLowerCase();
+    const tgtType = target_record_type.toLowerCase();
+
+    try {
+      // --- Ownership routing: Feature/Epic → Goal (always use field setter) ---
+      if (
+        (srcType === "feature" || srcType === "epic") &&
+        tgtType === "goal"
+      ) {
+        const goalRecord = await this.resolveRecord("goal", target_reference_num);
+        const goalId = Number(goalRecord.id);
+
+        const sourceRecord = await this.resolveRecord(srcType, source_reference_num);
+        const existingGoals: any[] = Array.isArray(sourceRecord.goals)
+          ? sourceRecord.goals
+          : [];
+        const existingGoalIds = existingGoals.map((g: any) => Number(g.id));
+
+        if (!existingGoalIds.includes(goalId)) {
+          const newGoalIds = [...existingGoalIds, goalId];
+          if (srcType === "feature") {
+            await this.restRequest(
+              `/api/v1/features/${encodeURIComponent(source_reference_num)}`,
+              "PUT",
+              { feature: { goals: newGoalIds } }
+            );
+          } else {
+            await this.restRequest(
+              `/api/v1/epics/${encodeURIComponent(source_reference_num)}`,
+              "PUT",
+              { epic: { goals: newGoalIds } }
+            );
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  mechanism: "field_setter",
+                  source: source_reference_num,
+                  target: target_reference_num,
+                  relationship: "Belongs to goal",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // --- Ownership routing: Feature/Epic → Initiative (field setter when no link_type) ---
+      if (
+        (srcType === "feature" || srcType === "epic") &&
+        tgtType === "initiative" &&
+        inputLinkType === undefined
+      ) {
+        const sourceRecord = await this.resolveRecord(srcType, source_reference_num);
+        const existingInitiative = sourceRecord.initiative;
+
+        if (
+          existingInitiative &&
+          (existingInitiative.reference_num || existingInitiative.id)
+        ) {
+          const existingRef =
+            existingInitiative.reference_num ?? String(existingInitiative.id);
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    success: false,
+                    action_required: true,
+                    message:
+                      `${source_reference_num} already belongs to initiative ${existingRef}` +
+                      ` ("${existingInitiative.name ?? existingRef}"). ` +
+                      `To replace it: call update_${srcType} with initiative_reference_num="${target_reference_num}". ` +
+                      `To add a peer "Relates to" link instead: call create_record_link again with link_type=10.`,
+                  },
+                  null,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+
+        // No existing initiative — set via field setter
+        if (srcType === "feature") {
+          await this.restRequest(
+            `/api/v1/features/${encodeURIComponent(source_reference_num)}`,
+            "PUT",
+            { feature: { initiative: target_reference_num } }
+          );
+        } else {
+          await this.restRequest(
+            `/api/v1/epics/${encodeURIComponent(source_reference_num)}`,
+            "PUT",
+            { epic: { initiative: target_reference_num } }
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  mechanism: "field_setter",
+                  source: source_reference_num,
+                  target: target_reference_num,
+                  relationship: "Belongs to initiative",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // --- Ownership routing: Feature/Epic → Release (field setter when no link_type) ---
+      if (
+        (srcType === "feature" || srcType === "epic") &&
+        tgtType === "release" &&
+        inputLinkType === undefined
+      ) {
+        if (srcType === "feature") {
+          await this.restRequest(
+            `/api/v1/features/${encodeURIComponent(source_reference_num)}`,
+            "PUT",
+            { feature: { release_id: target_reference_num } }
+          );
+        } else {
+          await this.restRequest(
+            `/api/v1/epics/${encodeURIComponent(source_reference_num)}`,
+            "PUT",
+            { epic: { release_id: target_reference_num } }
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  mechanism: "field_setter",
+                  source: source_reference_num,
+                  target: target_reference_num,
+                  relationship: "Belongs to release",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // --- Ownership routing: Feature → Epic (field setter when no link_type) ---
+      if (
+        srcType === "feature" &&
+        tgtType === "epic" &&
+        inputLinkType === undefined
+      ) {
+        await this.restRequest(
+          `/api/v1/features/${encodeURIComponent(source_reference_num)}`,
+          "PUT",
+          { feature: { epic: target_reference_num } }
+        );
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  mechanism: "field_setter",
+                  source: source_reference_num,
+                  target: target_reference_num,
+                  relationship: "Belongs to epic",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // --- Peer relationship via record_links API ---
+
+      // Same-type pairs without link_type: ask the user to specify
+      if (srcType === tgtType && inputLinkType === undefined) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: false,
+                  action_required: true,
+                  message:
+                    `link_type is required when linking two ${srcType} records. ` +
+                    `Valid values: 10=Relates to, 20=Depends on, 30=Duplicated by, ` +
+                    `40=Contained by, 50=Impacted by, 60=Blocked by, 80=Research for. ` +
+                    `Please call create_record_link again with the intended link_type.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // Hierarchy inference for cross-type pairs when link_type is omitted
+      let effectiveLinkType = inputLinkType ?? 10;
+      let effectiveSrcType = srcType;
+      let effectiveSrcRef = source_reference_num;
+      let effectiveTgtType = tgtType;
+      let effectiveTgtRef = target_reference_num;
+      let swapped = false;
+
+      if (inputLinkType === undefined) {
+        const srcOrder = (Handlers.HIERARCHY as readonly string[]).indexOf(srcType);
+        const tgtOrder = (Handlers.HIERARCHY as readonly string[]).indexOf(tgtType);
+        // If both are in the hierarchy and source is lower-order, swap
+        if (srcOrder !== -1 && tgtOrder !== -1 && srcOrder < tgtOrder) {
+          effectiveSrcType = tgtType;
+          effectiveSrcRef = target_reference_num;
+          effectiveTgtType = srcType;
+          effectiveTgtRef = source_reference_num;
+          swapped = true;
+        }
+      }
+
+      const apiPath = Handlers.RECORD_TYPE_API_PATH[effectiveSrcType];
+      if (!apiPath) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Unsupported record type: ${effectiveSrcType}`
+        );
+      }
+      const tgtBodyType = Handlers.RECORD_TYPE_BODY[effectiveTgtType];
+      if (!tgtBodyType) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Unsupported record type: ${effectiveTgtType}`
+        );
+      }
+
+      // Resolve both sides to internal IDs
+      const sourceRecord = await this.resolveRecord(effectiveSrcType, effectiveSrcRef);
+      const targetRecord = await this.resolveRecord(effectiveTgtType, effectiveTgtRef);
+
+      await this.restRequest(
+        `/api/v1/${apiPath}/${encodeURIComponent(String(sourceRecord.id))}/record_links`,
+        "POST",
+        {
+          record_link: {
+            record_type: tgtBodyType,
+            record_id: targetRecord.id,
+            link_type: effectiveLinkType,
+          },
+        }
+      );
+
+      const relationship =
+        Handlers.LINK_TYPE_LABELS[effectiveLinkType] ?? `Type ${effectiveLinkType}`;
+
+      const resultObj: Record<string, unknown> = {
+        success: true,
+        mechanism: "record_link",
+        source: effectiveSrcRef,
+        target: effectiveTgtRef,
+        relationship,
+      };
+      if (swapped) {
+        resultObj.note = `Source and target were swapped to match the Aha! ownership hierarchy (${effectiveSrcType} is higher-order than ${effectiveTgtType}).`;
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(resultObj, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) throw error;
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("(403)")) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Permission denied creating record link: ${msg}`
+        );
+      }
+      if (msg.includes("(422)")) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Invalid link configuration (unsupported type combination or missing field): ${msg}`
+        );
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to create record link: ${msg}`
+      );
+    }
+  }
+
+  async handleListRecordLinks(request: any) {
+    const { record_type, reference_num } = request.params.arguments as {
+      record_type: string;
+      reference_num: string;
+    };
+
+    if (!record_type || !reference_num) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "record_type and reference_num are required"
+      );
+    }
+
+    const apiPath = Handlers.RECORD_TYPE_API_PATH[record_type.toLowerCase()];
+    if (!apiPath) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Unsupported record type: ${record_type}`
+      );
+    }
+
+    try {
+      const record = await this.resolveRecord(
+        record_type.toLowerCase(),
+        reference_num
+      );
+
+      const data = await this.restRequest<any>(
+        `/api/v1/${apiPath}/${encodeURIComponent(String(record.id))}/record_links`,
+        "GET"
+      );
+
+      const links: any[] = Array.isArray(data?.record_links)
+        ? data.record_links
+        : [];
+
+      const result = links.map((link: any) => ({
+        link_id: String(link.id ?? ""),
+        relationship:
+          link.link_type_name ??
+          Handlers.LINK_TYPE_LABELS[link.link_type] ??
+          `Type ${link.link_type}`,
+        linked_record_type: link.record?.type ?? "",
+        linked_record_reference_num: link.record?.reference_num ?? "",
+        linked_record_name: link.record?.name ?? "",
+        linked_record_status: link.record?.workflow_status?.name ?? "",
+      }));
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) throw error;
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to list record links: ${msg}`
+      );
+    }
+  }
+
+  async handleDeleteRecordLink(request: any) {
+    const { link_id } = request.params.arguments as { link_id: string };
+
+    if (!link_id) {
+      throw new McpError(ErrorCode.InvalidParams, "link_id is required");
+    }
+
+    try {
+      await this.restRequest<any>(
+        `/api/v1/record_links/${encodeURIComponent(link_id)}`,
+        "DELETE"
+      );
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({ success: true, link_id }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof McpError) throw error;
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("(404)")) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Record link not found (link_id: ${link_id}): ${msg}`
+        );
+      }
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Failed to delete record link: ${msg}`
+      );
+    }
+  }
+
   async handleUpdateInitiative(request: any) {
     const { reference_num, product_id, name, description, goal_ids } =
       request.params.arguments as {
@@ -1106,7 +1658,7 @@ export class Handlers {
         product_id: string;
         name?: string;
         description?: string;
-        goal_ids?: number[];
+        goal_ids?: string[];
       };
 
     if (!reference_num) {
