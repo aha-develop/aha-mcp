@@ -15,6 +15,10 @@ export interface RequirementResponse {
   requirement: Record;
 }
 
+export interface EpicResponse {
+  epic: Record;
+}
+
 export interface PageResponse {
   page: {
     name: string;
@@ -34,6 +38,7 @@ export interface PageResponse {
 export const FEATURE_REF_REGEX = /^([A-Z][A-Z0-9]*)-(\d+)$/;
 export const REQUIREMENT_REF_REGEX = /^([A-Z][A-Z0-9]*)-(\d+)-(\d+)$/;
 export const NOTE_REF_REGEX = /^([A-Z][A-Z0-9]*)-N-(\d+)$/;
+export const EPIC_REF_REGEX = /^([A-Z][A-Z0-9]*)-E-(\d+)$/;
 
 export interface SearchNode {
   name: string | null;
