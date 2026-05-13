@@ -1,5 +1,10 @@
 # aha-mcp
 
+> [!IMPORTANT]
+> This repository is obsolete and will be archived. Use the supported [Aha! remote MCP server](https://support.aha.io/aha-develop/integrations/mcp-server/remote-mcp-server~7611250482619899159) instead.
+>
+> The remote MCP server connects directly from your AI tool to `https://[your-aha-domain].aha.io/api/v1/mcp`, uses your Aha! permissions, and has broader capabilities, including creating and editing records. This package only contains read-only tools and should not be used for new setups.
+
 Model Context Protocol (MCP) server for accessing Aha! records through the MCP. This integration enables seamless interaction with Aha! features, requirements, and pages directly through the Model Context Protocol.
 
 ## Prerequisites
