@@ -38,7 +38,7 @@ class AhaMcp {
     this.server = new Server(
       {
         name: "aha-mcp",
-        version: "1.1.0",
+        version: "1.2.0",
       },
       {
         capabilities: {
@@ -62,17 +62,53 @@ class AhaMcp {
       tools: [
         {
           name: "get_record",
-          description: "Get an Aha! feature or requirement by reference number",
+          description:
+            "Get an Aha! feature, requirement, or release by reference number",
           inputSchema: {
             type: "object",
             properties: {
               reference: {
                 type: "string",
                 description:
-                  "Reference number (e.g., DEVELOP-123 or ADT-123-1)",
+                  "Reference number (e.g., DEVELOP-123, ADT-123-1, or DEVELOP-R-123 for releases)",
               },
             },
             required: ["reference"],
+          },
+        },
+        {
+          name: "get_release",
+          description:
+            "Get an Aha! release by reference number with dates, status, progress, and features",
+          inputSchema: {
+            type: "object",
+            properties: {
+              reference: {
+                type: "string",
+                description:
+                  "Release reference number (e.g., IDP-R-23, DUM-R-6)",
+              },
+            },
+            required: ["reference"],
+          },
+        },
+        {
+          name: "list_releases",
+          description: "List releases for an Aha! product by project ID",
+          inputSchema: {
+            type: "object",
+            properties: {
+              projectId: {
+                type: "string",
+                description: "Aha! product/project ID",
+              },
+              active: {
+                type: "boolean",
+                description:
+                  "Filter to only active (non-shipped) releases",
+              },
+            },
+            required: ["projectId"],
           },
         },
         {
@@ -107,7 +143,8 @@ class AhaMcp {
               },
               searchableType: {
                 type: "string",
-                description: "Type of document to search for (e.g., Page)",
+                description:
+                  "Type of document to search for (e.g., Page, Feature, Release)",
                 default: "Page",
               },
             },
@@ -120,6 +157,10 @@ class AhaMcp {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (request.params.name === "get_record") {
         return this.handlers.handleGetRecord(request);
+      } else if (request.params.name === "get_release") {
+        return this.handlers.handleGetRelease(request);
+      } else if (request.params.name === "list_releases") {
+        return this.handlers.handleListReleases(request);
       } else if (request.params.name === "get_page") {
         return this.handlers.handleGetPage(request);
       } else if (request.params.name === "search_documents") {
