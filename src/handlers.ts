@@ -4,15 +4,18 @@ import {
   FEATURE_REF_REGEX,
   REQUIREMENT_REF_REGEX,
   NOTE_REF_REGEX,
+  EPIC_REF_REGEX,
   Record,
   FeatureResponse,
   RequirementResponse,
+  EpicResponse,
   PageResponse,
   SearchResponse,
 } from "./types.js";
 import {
   getFeatureQuery,
   getRequirementQuery,
+  getEpicQuery,
   getPageQuery,
   searchDocumentsQuery,
 } from "./queries.js";
@@ -36,9 +39,7 @@ export class Handlers {
       if (FEATURE_REF_REGEX.test(reference)) {
         const data = await this.client.request<FeatureResponse>(
           getFeatureQuery,
-          {
-            id: reference,
-          }
+          { id: reference }
         );
         result = data.feature;
       } else if (REQUIREMENT_REF_REGEX.test(reference)) {
@@ -47,10 +48,16 @@ export class Handlers {
           { id: reference }
         );
         result = data.requirement;
+      } else if (EPIC_REF_REGEX.test(reference)) {
+        const data = await this.client.request<EpicResponse>(
+          getEpicQuery,
+          { id: reference }
+        );
+        result = data.epic;
       } else {
         throw new McpError(
           ErrorCode.InvalidParams,
-          "Invalid reference number format. Expected DEVELOP-123 or ADT-123-1"
+          "Invalid reference number format. Expected DEVELOP-123, ADT-123-1, or DCOMMS-E-157"
         );
       }
 
@@ -77,7 +84,6 @@ export class Handlers {
       if (error instanceof McpError) {
         throw error;
       }
-
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error("API Error:", errorMessage);
@@ -137,7 +143,6 @@ export class Handlers {
       if (error instanceof McpError) {
         throw error;
       }
-
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error("API Error:", errorMessage);
@@ -179,7 +184,6 @@ export class Handlers {
       if (error instanceof McpError) {
         throw error;
       }
-
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error("API Error:", errorMessage);
