@@ -62,14 +62,14 @@ class AhaMcp {
       tools: [
         {
           name: "get_record",
-          description: "Get an Aha! feature or requirement by reference number",
+          description: "Get an Aha! feature, requirement, or initiative by reference number",
           inputSchema: {
             type: "object",
             properties: {
               reference: {
                 type: "string",
                 description:
-                  "Reference number (e.g., DEVELOP-123 or ADT-123-1)",
+                  "Reference number (e.g., DEVELOP-123, ADT-123-1, or TSP-S-99)",
               },
             },
             required: ["reference"],
@@ -107,8 +107,8 @@ class AhaMcp {
               },
               searchableType: {
                 type: "string",
-                description: "Type of document to search for (e.g., Page)",
-                default: "Page",
+                description:
+                  "Type of document to search for (e.g., Initiative, Page). Defaults to searching both Initiative and Page.",
               },
             },
             required: ["query"],
